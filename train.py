@@ -10,8 +10,6 @@ from io            import *;
 import Logger;
 import numpy as np;
 
-
-
 def printUsages():
     print "Usage: train.py [options] x_file y_file m_file";
     print "options";
