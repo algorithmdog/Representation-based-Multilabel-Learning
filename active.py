@@ -73,8 +73,12 @@ def grad(A, Y = None, type = " sgmoid_negativeloglikelihood ", idx = None):
         "linear_approx_l1_hinge"       == type or \
         "linear_l2_hinge"              == type    \
        ) and None == Y:   
-        Logger.instance.error("None == Y when computing gradients of loss function %s"%type);
-        raise Exception("None == Y when computing gradients of loss function %s"%type);
+        Logger.instance.error("None should not equals Y\
+                               when computing gradients of loss function %s"\
+                               %type);
+        raise Exception("None should not equal\
+                         Y when computing gradients of loss function %s"\
+                         %type);
        
     if   "sgmoid_negativeloglikelihood" == type:
         return A - Y;        

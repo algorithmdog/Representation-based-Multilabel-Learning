@@ -10,9 +10,10 @@ sys.path.append(path + "/../Python_Utils");
 from active import *;
 import numpy as np;
 import math;
+import pickle;
 
 
-def Model:
+class Model:
     def __init__(self,  parameters):
         self.parameters = dict();
         self.parameters["num_feature"]   = 100;
@@ -67,14 +68,10 @@ def Model:
             self.grad_b.append(np.array(b));
        
         self.lb       = np.array([ 0.0 for j in num_label ]); 
-        self.grad_lb  = np.copy(self.label_bias);
+        self.grad_lb  = np.copy(self.lb);
         label_factors = [ [0.0 for j in xrange(num_label)] for i in xrange(num_factor) ];
         self.lf       = np.array(label_factors);
         self.grad_lf  = np.copy(self.lf);
-
-    def read(self, filename):
-    
-    def write(self, filename):
 
     def check_dimenson(self, x, y = None):
         m,n = x.shape;
