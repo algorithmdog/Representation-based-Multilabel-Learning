@@ -66,7 +66,28 @@ class ActiveTester(unittest.TestCase):
         grad = active.grad(a, y, type = "sgmoid_negativeloglikelihood");
         tx   = np.array([[-0.9,0.2],[0.3,-0.1]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
+
+        grad = active.grad(a, y, type = "linear_least_square");
+        tx   = np.array([[-1.8,0.4],[0.6,-0.2]]);
+        self.assertTrue(is_matrix_equals(grad, tx), True);
+
+        
+        ## new test data for hinge function
+        a = np.array([[0.1, -2],[0.3, 9]]);        
+        y = np.array([[1,0],[0,1]]);
+
+        grad = active.grad(a, y, type = "linear_appro_l1_hinge");
+        tx   = np.array([[-1.17,0],[1,0]]);
+        self.assertTrue(is_matrix_equals(grad, tx), True);
+
+        grad = active.grad(a, y, type = "linear_l2_hinge");
+        tx   = np.array([[-1.8,0],[2.6,0]]);
+        self.assertTrue(is_matrix_equals(grad, tx), True);
  
+
+        a = np.array([[0.1,0.2],[0.3,0.9]]);
+        y = np.array([[1,   0 ],[0,  1  ]]);
+
         grad = active.grad(a, type = "sgmoid");
         tx   = np.array([[0.09,0.16],[0.21,0.09]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);

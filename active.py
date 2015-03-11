@@ -131,11 +131,11 @@ def grad(A, Y = None, type = " sgmoid_negativeloglikelihood "):
         m,n  = score.shape;
         for i in xrange(m):
             for j in xrange(n):
-                if   score[i,j] > 1.0:
-                    grad[i,j] = 0.0;
-                elif 0 <= score[i,j] and score[i,j] < 1.0:
-                    grad[i,j] = 6 * Y[i,j] * Y[i,j] * A[i,j]  - 2 * Y[i,j];
-                else:
+                if 0 <= score[i,j] and score[i,j] < 1.0:
+                    grad[i,j] = 3 * score[i,j]* score[i,j] * Y[i,j]  \
+                                - 2 * score[i,j] * Y[i,j] \
+                                - Y[i,j];
+                elif score[i,j] < 0:
                     grad[i,j] = -Y[i,j];
         return grad; 
     elif "linear_l2_hinge" == type:
@@ -145,8 +145,8 @@ def grad(A, Y = None, type = " sgmoid_negativeloglikelihood "):
         m,n   = score.shape;
         for i in xrange(m):
             for j in xrange(n):
-                if score[i,j] < 1:
-                    grad[i,j] = -Y[i,j];
+                if score[i,j] <= 1:
+                    grad[i,j] = -2 * Y[i,j] * ( 1 - score[i,j]);
         return grad;
 
     elif "sgmoid" == type:

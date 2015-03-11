@@ -45,50 +45,54 @@ class Model:
         if "label_lambda"  in parameters:
             self.parameters["label_lambda"]  = parameters["label_lambda"];
 
-        num_feature = self.parameters["num_feature"];
-        num_factor  = self.parameters["num_factor"];
-        num_label   = self.parameters["num_label"];
-        sizes       = self.parameters["sizes"];
+        self.num_feature = self.parameters["num_feature"];
 
-        num = [num_feature];
-        for i in sizes:
-            num.append(i);
-        num.append(num_factor);
+        self.num_factor  = self.parameters["num_factor"];
+        self.num_label   = self.parameters["num_label"];
+        self.sizes       = self.parameters["sizes"];
+
+        self.num = [ self.num_feature ];
+        for i in self.sizes:
+            self.num.append(i);
+        self.num.append(self.num_factor);
 
         self.b = [];
         self.w = [];
         self.grad_b = [];
         self.grad_w = [];
-        for idx in len(num)-1:
-            w = [ [0.0 for j in num[idx+1]] for i in num[idx] ];
-            b = [  0.0 for j in num[idx+1 ];
+        for idx in xrange(len(self.num)-1):
+            w = [ [0.0 for j in xrange(self.num[idx+1])] \
+                       for i in xrange(self.num[idx]) ];
+            b = [  0.0 for j in xrange(self.num[idx+1]) ];
             self.w.append(np.array(w));
             self.b.append(np.array(b));
             self.grad_w.append(np.array(w));
             self.grad_b.append(np.array(b));
        
-        self.lb       = np.array([ 0.0 for j in num_label ]); 
+        self.lb       = np.array([ 0.0 for j in xrange(self.num_label) ]); 
         self.grad_lb  = np.copy(self.lb);
-        label_factors = [ [0.0 for j in xrange(num_label)] for i in xrange(num_factor) ];
+        label_factors = [ [0.0 for j in xrange(self.num_label)] \
+                               for i in xrange(self.num_factor) ];
         self.lf       = np.array(label_factors);
         self.grad_lf  = np.copy(self.lf);
 
-    def check_dimenson(self, x, y = None):
+    def check_dimension(self, x, y = None):
         m,n = x.shape;
         if n != self.num_feature:
-            Logger.instance.error("The self.num_feature %d != the actual num of \
-                                   features %d"%(self.num_feature, n));
-            raise Exception("The self.num_feature %d != the actual num of features %d"\
-                             %(self.num_feature, n));    
+            Logger.instance.error("The self.num_feature (%d) != the actual num of "
+                                  "features (%d)"%(self.num_feature, n));
+            raise Exception("The self.num_feature (%d) != the actual num of"
+                            " features (%d)"%(self.num_feature, n));    
 
-        if None == y:   return;
+        if None == y:   return True;
         m,n = y.shape;
         if n != self.num_label:
-            Logger.instance.error("The self.num_label %d != the actual num of label %d"\
-                                  %(self.num_label, n));
-            raise Exception("The self.num_label %d != the actual num of label %d"\
-                            %(self.num_label, n));
+            Logger.instance.error("The self.num_label (%d) != the actual num of "
+                                  "label (%d)"%(self.num_label, n));
+            raise Exception("The self.num_label (%d) != the actual num of "
+                            "label %d"%(self.num_label, n));
             
+        return True;
 
     def update(self, x, y, idx):
         check_dimension(x, y );
@@ -119,7 +123,7 @@ class Model:
         n_layer = len(self.w);
         hidden    = [];
         tmp       = x;
-        for i in xrange( n_layer-1 );
+        for i in xrange( n_layer-1 ):
             tmp  = np.dot( tmp, self.w[i] );
             tmp += np.unkownfunc(self.b);
             tmp  = active( tmp, self.parameters["hidden_active"] );
