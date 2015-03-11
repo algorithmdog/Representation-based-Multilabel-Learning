@@ -140,7 +140,7 @@ class Model:
         grad_type    = self.parameters["output_active"] \
                        + "_" \
                        + self.parameters["loss"];
-        output_grad  = grad( output, y, grad_type, idx);
+        output_grad  = grad( output, y, grad_type );
 
         sum_up_to_down      = np.sum(idx,0);
         sum_left_to_right   = np.sum(idx,1);

@@ -27,7 +27,7 @@ class ArffReader:
         x = None
         y = None
         self.obj = self.decoder.iter_decode(self.arff, obj=self.obj, batch=self.batch)
-        print self.obj['data']
+#       print self.obj['data']
         if [] == self.classes:
             self.num_attribute = len(self.obj['attributes'])
             self.classes = [ 0 for i in xrange(self.num_attribute) ]
