@@ -1,0 +1,15 @@
+@relation test_data
+
+@attribute fea1 {0,1}
+@attribute fea2 numeric
+@attribute fea3 numeric
+@attribute multi_label_label1 numeric
+@attribute multi_label_label2 numeric
+@attribute multi_label_label3 numeric
+
+@data
+{0 1, 2 1, 3 1}
+{1 1, 4 1}
+{2 1, 3 1}
+{0 1, 5 1}
+{2 1, 3 1}

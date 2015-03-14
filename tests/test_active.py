@@ -2,7 +2,9 @@
 import active
 import unittest
 import numpy as np;
+
 from Matrix_Utils import *;
+
 
 class ActiveTester(unittest.TestCase):
     def test_active(self):
@@ -16,6 +18,11 @@ class ActiveTester(unittest.TestCase):
                 
         a_linear = active.active(a, 'linear');
         self.assertEqual(is_matrix_equals(a_linear,a), True); 
+        
+        a = np.array([[0.1,-0.2],[0,10]]);
+        standard = np.array([[0.09966799462495582, -0.197375320224904],[0, 1]]);
+        a_tanh = active.active(a, "tanh");
+        self.assertTrue(is_matrix_equals(a_tanh, standard));
 
         with self.assertRaises(Exception):
             active.active(a,"unknown active_type")
@@ -58,12 +65,12 @@ class ActiveTester(unittest.TestCase):
         y = np.array([[1,   0],   [0,   1]]);
 
         with self.assertRaises(Exception):
-            active.grad(a, type = "sgmoid_negativeloglikelihood");
+            active.grad(a, type = "sgmoid_negative_log_likelihood");
             active.grad(a, type = "linear_least_square");
-            active.grad(a, type = "linear_approx_l1_hinge");
+            active.grad(a, type = "linear_appro_l1_hinge");
             active.grad(a, type = "linear_l2_hinge");
         
-        grad = active.grad(a, y, type = "sgmoid_negativeloglikelihood");
+        grad = active.grad(a, y, type = "sgmoid_negative_log_likelihood");
         tx   = np.array([[-0.9,0.2],[0.3,-0.1]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
 

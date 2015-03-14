@@ -8,55 +8,92 @@ sys.path.append(path + '/utils/liac-arff')
 sys.path.append(path + '../utils/liac-arff')
 import numpy as np
 import arff
+import Logger
 
 class ArffReader:
 
     def __init__(self, filename, batch = 50):
-        self.arff = open(filename, 'rb')
-        self.decoder = arff.ArffDecoder()
-        self.batch = batch
-        self.obj = None
-        self.num_class = 0
-        self.num_feature = 0
+        self.arff          = open(filename, 'rb')
+        self.decoder       = arff.ArffDecoder()
+        self.batch         = batch
+        self.num_class     = 0
+        self.num_feature   = 0
         self.num_attribute = 0
-        self.classes = []
-
-
+        self.classes       = []
+        self.first         = True
+        #nextobj store the next obj. The nextobj is important
+        #because arffreader should stop reading when nextobj 
+        #has no data.  
+        #It prevents [] from where the number of instances is 
+        #a multiple of the size of batch.  
+         
+        self.nextobj = None
 
     def read(self):
         x = None
         y = None
-        self.obj = self.decoder.iter_decode(self.arff, obj=self.obj, batch=self.batch)
-#       print self.obj['data']
-        if [] == self.classes:
-            self.num_attribute = len(self.obj['attributes'])
+
+        if None != self.nextobj:
+            data = self.nextobj["data"];
+            obj  = dict();
+            obj["data"] = data;
+        #not obj = self.nextobj; 
+        #if "obj = self.nextobj", obj will update its data as well as self.nextobj.
+        self.nextobj   = self.decoder.iter_decode(self.arff, \
+                                                  obj = self.nextobj, \
+                                                  batch = self.batch)
+
+        if True == self.first:
+            self.first = False;
+            
+            self.num_attribute = len( self.nextobj['attributes'] )
             self.classes = [ 0 for i in xrange(self.num_attribute) ]
             for i in xrange(self.num_attribute):
-                if u'multi_label_' in self.obj['attributes'][i][0]:
+                feat = self.nextobj["attributes"][i][0];
+                type = self.nextobj["attributes"][i][1];
+
+                ## only support NUMERIC attributes
+                if u'NUMERIC' != type:
+                    Logger.instance.error("Only support NUMERIC attributes, "
+                                          "but the %s feature is %s."%(feat,type));
+                    raise       Exception("Only support NUMERIC attributes, "
+                                          "but the %s feature is %s."%(feat, type) );
+
+                if u'multi_label_' in feat:
                     self.classes[i] = 1
                     self.num_class += 1
 
+
             self.num_feature = self.num_attribute - self.num_class
-        num_instance = len(self.obj['data'])
-        x = [ [ 0 for col in xrange(self.num_feature) ] for row in xrange(num_instance) ]
-        y = [ [ 0 for col in xrange(self.num_class) ] for row in xrange(num_instance) ]
+        
+            data         = self.nextobj["data"];
+            obj          = dict();
+            obj["data"]  = data;
+            self.nextobj = self.decoder.iter_decode(self.arff, \
+                                                      obj   = self.nextobj, \
+                                                      batch = self.batch);
+ 
+        num_instance = len(obj['data'])
+        x = [ [ 0 for col in xrange(self.num_feature) ] \
+              for row in xrange(num_instance) ]
+        y = [ [ 0 for col in xrange(self.num_class) ] \
+              for row in xrange(num_instance) ]
         for i in xrange(num_instance):
             idx_x = 0
             idx_y = 0
             for j in xrange(self.num_attribute):
                 if 1 == self.classes[j]:
-                    y[i][idx_y] = self.obj['data'][i][j]
+                    y[i][idx_y] = obj['data'][i][j]
                     idx_y += 1
                 else:
-                    x[i][idx_x] = self.obj['data'][i][j]
+                    x[i][idx_x] = obj['data'][i][j]
                     idx_x += 1
 
+        has_next = len(self.nextobj["data"]) != 0;
+        return np.array(x), np.array(y), has_next;
 
-        return (np.array(x), np.array(y))
 
-
-
-    def close():
+    def close(self):
         self.arff.close()
 
 

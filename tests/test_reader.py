@@ -26,23 +26,29 @@ class test_reader(unittest.TestCase):
 
     def test_read(self):
         reader = arffreader.ArffReader(path + "/test_reader_data.arff", 2);
-        x,y = reader.read();
+        x, y, has_next  = reader.read();
         tx = [[1,0, 1],[0, 1, 0]];
         ty = [[1,0, 0],[0, 1, 0]];
         self.assertEqual(self.equals(x, tx), True);
         self.assertEqual(self.equals(y, ty), True);
 
-        x,y = reader.read();
+        x, y, has_next = reader.read();
         tx = [[0, 0, 1],[1, 0, 0]];
         ty = [[1, 0, 0],[0, 0, 1]];
         self.assertEqual(self.equals(x, tx), True);
         self.assertEqual(self.equals(y, ty), True);
+        
 
-        x,y = reader.read();
+        x, y, has_next = reader.read();
         tx = [[ 0, 0, 1]];
         ty = [[ 1, 0, 0]];
         self.assertEqual(self.equals(x, tx), True);
         self.assertEqual(self.equals(y, ty), True);
 
-        x,y = reader.read();
+        x, y, has_next = reader.read();
+
+    def test_read_no_numeric(self):
+        reader = arffreader.ArffReader(path + "/test_reader_data1.arff", 2);
+        with self.assertRaises(Exception):
+            x, y, has_next = reader.read();
         

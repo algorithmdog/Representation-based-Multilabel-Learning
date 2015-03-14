@@ -29,10 +29,10 @@ def active(A, active_type="sgmoid", idx = None):
 
 
 #@loss_type: the loss function list
-#1. negative log likelihood
-#2. least square 
-#3. appro l1 hinge
-#4. l2 hinge
+#1. negative_log_likelihood
+#2. least_square 
+#3. appro_l1_hinge
+#4. l2_hinge
 def loss(A, Y, loss_type = "negative_log_likelihood", idx = None):
     #if idx not specified, full one
     if None == idx:
@@ -99,19 +99,19 @@ def loss(A, Y, loss_type = "negative_log_likelihood", idx = None):
 
 #@type. the grad() computes the  gradient of the type function. \
 #       The type function may be the loss function or the active function 
-# 1. sgmoid active and negative log likelihood loss
-# 2. least square loss
-# 3. approimate l1 hinge loss
-# 4. l2 hinge loss 
+# 1. sgmoid_negative_log_likelihood
+# 2. least_square
+# 3. appro_l1_hinge
+# 4. l2_hinge
 # 5. sgmoid
 # 6. linear
 # 7. tanh
 #@parameters. 
-def grad(A, Y = None, type = " sgmoid_negativeloglikelihood "):
-    if ("sgmoid_negativeloglikelihood" == type or \
-        "linear_least_square"          == type or \
-        "linear_appro_l1_hinge"        == type or \
-        "linear_l2_hinge"              == type    \
+def grad(A, Y = None, type = " sgmoid_negative_log_likelihood "):
+    if ("sgmoid_negative_log_likelihood" == type or \
+        "linear_least_square"            == type or \
+        "linear_appro_l1_hinge"          == type or \
+        "linear_l2_hinge"                == type    \
        ) and None == Y:   
             Logger.instance.error("Y should not equals None when computing gradients"
                                   " of loss function %s"%type);
@@ -119,8 +119,7 @@ def grad(A, Y = None, type = " sgmoid_negativeloglikelihood "):
                             " function %s"%type);
        
 
-
-    if "sgmoid_negativeloglikelihood" == type:
+    if "sgmoid_negative_log_likelihood" == type:
         return A - Y;        
     elif "linear_least_square" == type:
         return 2*(A - Y);
