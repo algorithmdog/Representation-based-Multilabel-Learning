@@ -10,6 +10,22 @@ import numpy as np
 import arff
 import Logger
 
+flag_label = u'multi_label_';
+
+class ArffWriter:
+    def __init__(self, filename):
+        self.encoder = arff.ArffEncoder();
+        self.f       = open(filename, "w");
+
+    def write(self, obj):
+        print arff.dumps(obj);
+        s = self.encoder.encode(obj);
+        self.f.write(s);
+
+    def close(self):
+        self.f.close();
+         
+
 class ArffReader:
 
     def __init__(self, filename, batch = 50):
@@ -92,6 +108,7 @@ class ArffReader:
         has_next = len(self.nextobj["data"]) != 0;
         return np.array(x), np.array(y), has_next;
 
+    
 
     def close(self):
         self.arff.close()

@@ -18,6 +18,7 @@ class PredictTester(unittest.TestCase):
         self.argv = [];
         self.argv.append("predict.py");
         self.argv.append("test_file");
+        self.argv.append("res_file");
         self.argv.append("m_file");
     def test_parseParameter(self):
         parameters = predict.parseParameter(self.argv);

@@ -2,7 +2,7 @@
 import os;
 import sys;
 import unittest;
-import arffreader;
+import arffio;
 
 path = os.path.split(os.path.realpath(__file__))[0];
 
@@ -25,7 +25,7 @@ class test_reader(unittest.TestCase):
 
 
     def test_read(self):
-        reader = arffreader.ArffReader(path + "/test_reader_data.arff", 2);
+        reader = arffio.ArffReader(path + "/test_reader_data.arff", 2);
         x, y, has_next  = reader.read();
         tx = [[1,0, 1],[0, 1, 0]];
         ty = [[1,0, 0],[0, 1, 0]];
@@ -48,7 +48,7 @@ class test_reader(unittest.TestCase):
         x, y, has_next = reader.read();
 
     def test_read_no_numeric(self):
-        reader = arffreader.ArffReader(path + "/test_reader_data1.arff", 2);
+        reader = arffio.ArffReader(path + "/test_reader_data1.arff", 2);
         with self.assertRaises(Exception):
             x, y, has_next = reader.read();
         
