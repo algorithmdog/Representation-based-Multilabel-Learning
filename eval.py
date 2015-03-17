@@ -30,8 +30,8 @@ def hamming(p, t):
     if p.shape != t.shape:
         pi,pj = p.shape;
         ti,tj = t.shape;
-        raise Exception("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj));
         Logger.instance.error("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj));
+        raise Exception("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj));
 
     correct = 0;
     total   = 0;

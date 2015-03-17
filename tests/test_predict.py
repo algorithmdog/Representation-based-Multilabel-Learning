@@ -6,7 +6,7 @@ sys.path.append(path + "/utils/Python_Utils");
 sys.path.append(path + "/../utils/Python_Utils");
 
 from latent_factor import *;
-from arffreader    import *;
+from arffio        import *;
 import Logger;
 import pickle;
 import numpy as np;
