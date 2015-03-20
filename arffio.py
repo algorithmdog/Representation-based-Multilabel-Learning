@@ -10,7 +10,7 @@ import numpy as np
 import arff
 import Logger
 
-flag_label = u'multi_label_';
+label_flag = u'multi_label_';
 
 class ArffWriter:
     def __init__(self, filename):
@@ -18,7 +18,6 @@ class ArffWriter:
         self.f       = open(filename, "w");
 
     def write(self, obj):
-        print arff.dumps(obj);
         s = self.encoder.encode(obj);
         self.f.write(s);
 
@@ -29,7 +28,7 @@ class ArffWriter:
 class ArffReader:
 
     def __init__(self, filename, batch = 50):
-        self.arff          = open(filename, 'rb')
+        self.arff_file     = open(filename, 'rb')
         self.decoder       = arff.ArffDecoder()
         self.batch         = batch
         self.num_class     = 0
@@ -55,7 +54,7 @@ class ArffReader:
             obj["data"] = data;
         #not obj = self.nextobj; 
         #if "obj = self.nextobj", obj will update its data as well as self.nextobj.
-        self.nextobj   = self.decoder.iter_decode(self.arff, \
+        self.nextobj   = self.decoder.iter_decode(self.arff_file, \
                                                   obj = self.nextobj, \
                                                   batch = self.batch)
 
@@ -75,7 +74,7 @@ class ArffReader:
                     raise       Exception("Only support NUMERIC attributes, "
                                           "but the %s feature is %s."%(feat, type) );
 
-                if u'multi_label_' in feat:
+                if label_flag in feat:
                     self.classes[i] = 1
                     self.num_class += 1
 
@@ -85,9 +84,9 @@ class ArffReader:
             data         = self.nextobj["data"];
             obj          = dict();
             obj["data"]  = data;
-            self.nextobj = self.decoder.iter_decode(self.arff, \
-                                                      obj   = self.nextobj, \
-                                                      batch = self.batch);
+            self.nextobj = self.decoder.iter_decode(self.arff_file, \
+                                                    obj   = self.nextobj, \
+                                                    batch = self.batch);
  
         num_instance = len(obj['data'])
         x = [ [ 0 for col in xrange(self.num_feature) ] \
@@ -111,7 +110,7 @@ class ArffReader:
     
 
     def close(self):
-        self.arff.close()
+        self.arff_file.close()
 
 
 

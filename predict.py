@@ -61,10 +61,11 @@ if __name__ == "__main__":
 
     obj["attributes"] = [];
     for j in xrange(len(reader.nextobj["attributes"])):
-        if arffio.flag_label in reader.nextobj["attributes"][j][0]: 
+        if arffio.label_flag in reader.nextobj["attributes"][j][0]: 
             obj["attributes"].append( reader.nextobj["attributes"][j] );
     
-    obj["data"] = [ [0 for col in xrange(len(p[0]))] for row in xrange(len(p))  ];      
+    obj["data"] = [ [0 for col in xrange(len(p[0]))] \
+                    for row in xrange(len(p))  ];      
     for i in xrange(len(p)):
         for j in xrange(len(p[0])):
             obj["data"][i][j] = p[i][j];

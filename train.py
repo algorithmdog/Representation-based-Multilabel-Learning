@@ -94,8 +94,8 @@ def train(train_file, idx_file, parameters):
 
             while has_next:
                 model.update(x, y, idx);    
-                x, y = train_reader.read();
-                idx  = np.ones(y.shape);   
+                x, y, has_next = train_reader.read();
+                idx = np.ones(y.shape);   
 
        
         train_reader.close();

@@ -11,6 +11,7 @@ from active import *;
 import numpy as np;
 import math;
 import pickle;
+import random;
 
 
 class Model:
@@ -61,9 +62,13 @@ class Model:
         self.grad_b = [];
         self.grad_w = [];
         for idx in xrange(len(self.num)-1):
-            w = [ [0.0 for j in xrange(self.num[idx+1])] \
-                       for i in xrange(self.num[idx]) ];
-            b = [  0.0 for j in xrange(self.num[idx+1]) ];
+            fan_in  = self.num[idx]
+            fan_out = self.num[idx + 1]
+            r = math.sqrt(6.0 /(fan_in+fan_out) );
+            w = [ [random.random() * 2 * r - r for j in xrange(self.num[idx+1])] \
+                                               for i in xrange(self.num[idx]) ];
+            
+            b = [  random.random() * 2 * r - r for j in xrange(self.num[idx+1]) ];
             self.w.append(np.array(w));
             self.b.append(np.array(b));
             self.grad_w.append(np.array(w));
@@ -71,9 +76,12 @@ class Model:
       
  
         ## the lw and lb for labels
-        self.lb       = np.array([ 0.0 for j in xrange(self.num_label) ]); 
-        self.lw       = np.array([ [0.0 for j in xrange(self.num_label)] \
-                                        for i in xrange(self.num_factor) ] );
+        r = math.sqrt(6.0 / (self.num_label + self.num_factor) );
+        self.lb       = np.array([ random.random() * 2 * r - r \
+                                   for j in xrange(self.num_label) ]); 
+        self.lw       = np.array([ [ random.random() * 2 * r -r \
+                                   for j in xrange(self.num_label)] \
+                                   for i in xrange(self.num_factor) ] );
         self.grad_lb  = np.copy(self.lb);
         self.grad_lw  = np.copy(self.lw);
 
@@ -123,9 +131,9 @@ class Model:
 
     def bp(self, x, y, idx):
         self.check_dimension(x, y);
-        #------------------------------------------------------------------------
+        #-------------------------------------------------------
         #ff for train 
-        #------------------------------------------------------------------------
+        #-------------------------------------------------------
         #compute the instance factor
         hidden_output = [];
         n,d           = x.shape;
