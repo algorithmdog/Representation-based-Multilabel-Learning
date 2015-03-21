@@ -13,6 +13,7 @@ import Logger;
 #1. linear ( not active )
 #2. sgmoid
 #3. tanh
+#4. rel
 def active(A, active_type="sgmoid", idx = None):
     if "linear" == active_type:
         None;
@@ -22,6 +23,8 @@ def active(A, active_type="sgmoid", idx = None):
         ex  = np.exp(A);
         enx = np.exp(-A);
         A   = (ex - enx) / (ex + enx);
+    elif "rel" == active_type:
+        A[ A < 0 ] = 0;
     else:
         Logger.instance.error("Not recognized active function: %s"%active_type);
         raise Exception("Not recognized active function: %s"%active_type);
@@ -106,6 +109,7 @@ def loss(A, Y, loss_type = "negative_log_likelihood", idx = None):
 # 5. sgmoid
 # 6. linear
 # 7. tanh
+# 8. rel
 #@parameters. 
 def grad(A, Y = None, type = " sgmoid_negative_log_likelihood "):
     if ("sgmoid_negative_log_likelihood" == type or \
@@ -127,25 +131,25 @@ def grad(A, Y = None, type = " sgmoid_negative_log_likelihood "):
         Y = 2 * Y - 1;
         score = Y * A;
         grad = np.zeros(score.shape);
-        m,n  = score.shape;
-        for i in xrange(m):
-            for j in xrange(n):
-                if 0 <= score[i,j] and score[i,j] < 1.0:
-                    grad[i,j] = 3 * score[i,j]* score[i,j] * Y[i,j]  \
-                                - 2 * score[i,j] * Y[i,j] \
-                                - Y[i,j];
-                elif score[i,j] < 0:
-                    grad[i,j] = -Y[i,j];
+        
+        # score < 0 case
+        flag = score < 0;
+        grad[ flag ]  = -Y[ flag ];
+        
+        # 0 <= score and score < 1 case
+        tmp   = (3 * score * score * Y - 2 * score * Y - Y);
+        flag1 = 0 <= score;
+        flag2 = score < 1.0;
+        flag = flag1 * flag2;
+        grad[ flag ] = tmp[ flag ];    
+    
         return grad; 
     elif "linear_l2_hinge" == type:
         Y = 2 * Y - 1;
         score = Y * A;
         grad  = np.zeros(Y.shape);
-        m,n   = score.shape;
-        for i in xrange(m):
-            for j in xrange(n):
-                if score[i,j] <= 1:
-                    grad[i,j] = -2 * Y[i,j] * ( 1 - score[i,j]);
+        flag = score <= 1;
+        grad[ flag ] =  (-2 * Y * ( 1 - score))[flag];
         return grad;
 
     elif "sgmoid" == type:
@@ -156,6 +160,11 @@ def grad(A, Y = None, type = " sgmoid_negative_log_likelihood "):
 
     elif "tanh" == type:
         return 1 - A * A;  
+
+    elif "rel" == type:
+        A[A <  0] = 0;
+        A[A >  0] = 1;
+        return A;
 
     else:
         Logger.instance.info("Not recognized grad target function: %s"%type);

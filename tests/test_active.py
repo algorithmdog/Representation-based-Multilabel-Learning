@@ -10,19 +10,25 @@ class ActiveTester(unittest.TestCase):
     def test_active(self):
         a        = np.array([[1,2],[0,0]]);
         
+        # test sgmoid
         standard   = np.array([[0.7310585786300049,0.8807970779778823],[0.5,0.5]]);
         a_sgmoid   = active.active(a);
-        #matrix_show(a_sgmoid);
-        #matrix_show(standard);
         self.assertEqual(is_matrix_equals(a_sgmoid, standard), True);
                 
+        # test linear
         a_linear = active.active(a, 'linear');
         self.assertEqual(is_matrix_equals(a_linear,a), True); 
         
+        # test tanh
         a = np.array([[0.1,-0.2],[0,10]]);
         standard = np.array([[0.09966799462495582, -0.197375320224904],[0, 1]]);
         a_tanh = active.active(a, "tanh");
         self.assertTrue(is_matrix_equals(a_tanh, standard));
+
+        # test rel
+        standard = np.array([[0.1, 0],[0,10]]);
+        a_rel = active.active(a, "rel");
+        self.assertTrue(is_matrix_equals(a_rel, standard));
 
         with self.assertRaises(Exception):
             active.active(a,"unknown active_type")
@@ -91,9 +97,7 @@ class ActiveTester(unittest.TestCase):
         tx   = np.array([[-1.8,0],[2.6,0]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
  
-
         a = np.array([[0.1,0.2],[0.3,0.9]]);
-        y = np.array([[1,   0 ],[0,  1  ]]);
 
         grad = active.grad(a, type = "sgmoid");
         tx   = np.array([[0.09,0.16],[0.21,0.09]]);
@@ -105,7 +109,13 @@ class ActiveTester(unittest.TestCase):
 
         grad = active.grad(a, type = "tanh");
         tx   = np.array([[0.99,0.96],[0.91,0.19]]);
-        self.assertTrue(is_matrix_equals(grad,tx), True);
+        self.assertTrue(is_matrix_equals(grad, tx), True);
+
+        a = np.array([[0.1, -0.2], [-0.3, 10]]); 
+       
+        grad = active.grad(a, type = "rel");
+        tx   = np.array([[1, 0],[0,1]]);
+        self.assertTrue(is_matrix_equals(grad, tx), True);
 
         with self.assertRaises(Exception):
             active.grad(a,y, "unknow active_type");
