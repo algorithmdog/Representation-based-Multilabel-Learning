@@ -7,7 +7,7 @@ sys.path.append(path + "/../utils/Python_Utils");
 
 from latent_factor import *;
 from Float_Utils   import *;
-import Logger;
+import logging, Logger;
 import numpy as np;
 import arffio;
 import pickle;
@@ -30,7 +30,8 @@ def hamming(p, t):
     if p.shape != t.shape:
         pi,pj = p.shape;
         ti,tj = t.shape;
-        Logger.instance.error("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj));
+        logger = logging.getLogger(Logger.project_name);
+        logger.error("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj));
         raise Exception("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj));
 
     correct = 0;

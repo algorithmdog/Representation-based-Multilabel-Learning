@@ -13,6 +13,7 @@ import math;
 import pickle;
 import random;
 
+import logging, Logger;
 
 class Model:
     def __init__(self,  parameters):
@@ -88,18 +89,20 @@ class Model:
     def check_dimension(self, x, y = None):
         m,n = x.shape;
         if n != self.num_feature:
-            Logger.instance.error("The self.num_feature (%d) != the actual num of "
-                                  "features (%d)"%(self.num_feature, n));
-            raise       Exception("The self.num_feature (%d) != the actual num of"
-                                  " features (%d)"%(self.num_feature, n));    
+            logger = logging.getLogger(Logger.project_name);
+            logger.error("The self.num_feature (%d) != the actual num of "
+                         "features (%d)"%(self.num_feature, n));
+            raise Exception("The self.num_feature (%d) != the actual num of"
+                            " features (%d)"%(self.num_feature, n));    
 
         if None == y: return True;
         m,n = y.shape;
         if n != self.num_label:
-            Logger.instance.error("The self.num_label (%d) != the actual num of "
-                                  "label (%d)"%(self.num_label, n));
-            raise       Exception("The self.num_label (%d) != the actual num of "
-                                  "label %d"%(self.num_label, n));
+            logger = logging.getLogger(logger.project_name);
+            logger.error("The self.num_label (%d) != the actual num of "
+                         "label (%d)"%(self.num_label, n));
+            raise Exception("The self.num_label (%d) != the actual num of "
+                            "label %d"%(self.num_label, n));
             
         return True;
 

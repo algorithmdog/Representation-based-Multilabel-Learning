@@ -7,7 +7,7 @@ sys.path.append(path + "/utils/Python_Utils");
 sys.path.append(path + "/../utils/Python_Utils");
 
 import numpy as np;
-import Logger;
+import logging,Logger;
 
 #active function list
 #1. linear ( not active )
@@ -26,7 +26,8 @@ def active(A, active_type="sgmoid", idx = None):
     elif "rel" == active_type:
         A[ A < 0 ] = 0;
     else:
-        Logger.instance.error("Not recognized active function: %s"%active_type);
+        logger = Logger.getLogger(Logger.project_name);
+        logger.error("Not recognized active function: %s"%active_type);
         raise Exception("Not recognized active function: %s"%active_type);
     return A;
 
@@ -95,7 +96,8 @@ def loss(A, Y, loss_type = "negative_log_likelihood", idx = None):
     
     
     else:
-        Logger.instance.error("Not recognized loss function: %s"%loss_type);
+        logger = logging.getLogger(Logger.project_name);
+        logger.error("Not recognized loss function: %s"%loss_type);
         raise Exception("Not recognized loss function: %s"%loss_type);
     
 
@@ -117,8 +119,9 @@ def grad(A, Y = None, type = " sgmoid_negative_log_likelihood "):
         "linear_appro_l1_hinge"          == type or \
         "linear_l2_hinge"                == type    \
        ) and None == Y:   
-            Logger.instance.error("Y should not equals None when computing gradients"
-                                  " of loss function %s"%type);
+            logger = logging.getLogger(Logger.project_name);
+            logger.error("Y should not equals None when computing gradients"
+                         " of loss function %s"%type);
             raise Exception("Y should not equal None when computing gradients of loss"
                             " function %s"%type);
        
@@ -167,6 +170,7 @@ def grad(A, Y = None, type = " sgmoid_negative_log_likelihood "):
         return A;
 
     else:
-        Logger.instance.info("Not recognized grad target function: %s"%type);
+        logger = logging.getLogger(Logger.project_name);
+        logger.info("Not recognized grad target function: %s"%type);
         raise Exception("Not recognized grad target function: %s"%type);
 

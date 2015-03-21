@@ -8,7 +8,7 @@ sys.path.append(path + '/utils/liac-arff')
 sys.path.append(path + '../utils/liac-arff')
 import numpy as np
 import arff
-import Logger
+import logging,Logger
 
 label_flag = u'multi_label_';
 
@@ -69,10 +69,11 @@ class ArffReader:
 
                 ## only support NUMERIC attributes
                 if u'NUMERIC' != type:
-                    Logger.instance.error("Only support NUMERIC attributes, "
-                                          "but the %s feature is %s."%(feat,type));
-                    raise       Exception("Only support NUMERIC attributes, "
-                                          "but the %s feature is %s."%(feat, type) );
+                    logger = logging.getLogger(Logger.project_name);
+                    logger.error("Only support NUMERIC attributes, "
+                                 "but the %s feature is %s."%(feat,type));
+                    raise Exception("Only support NUMERIC attributes, "
+                                 "but the %s feature is %s."%(feat, type) );
 
                 if label_flag in feat:
                     self.classes[i] = 1
