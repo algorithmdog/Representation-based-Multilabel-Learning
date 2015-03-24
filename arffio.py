@@ -15,14 +15,15 @@ label_flag = u'multi_label_';
 class ArffWriter:
     def __init__(self, filename):
         self.encoder = arff.ArffEncoder();
-        self.f       = open(filename, "w");
+        self.file    = open(filename, "w");
 
-    def write(self, obj):
-        s = self.encoder.encode(obj);
-        self.f.write(s);
+    def write(self, obj, is_first_call = True):
+        gen = self.encoder.iter_encode(obj, is_first_call);
+        for row in gen:
+            self.file.write(row + u'\n');
 
     def close(self):
-        self.f.close();
+        self.file.close();
          
 
 class ArffReader:
@@ -52,9 +53,8 @@ class ArffReader:
             data = self.nextobj["data"];
             obj  = dict();
             obj["data"] = data;
-        #not obj = self.nextobj; 
-        #if "obj = self.nextobj", obj will update its data as well as self.nextobj.
-        self.nextobj   = self.decoder.iter_decode(self.arff_file, \
+        
+        self.nextobj = self.decoder.iter_decode(self.arff_file, \
                                                   obj = self.nextobj, \
                                                   batch = self.batch)
 
