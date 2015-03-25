@@ -12,7 +12,6 @@ import numpy as np;
 import math;
 import pickle;
 import random;
-
 import logging, Logger;
 
 class Model:
