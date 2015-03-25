@@ -22,7 +22,8 @@ class correlation_sampler:
         if "num_label" in parameters:
             self.parameters["num_label"] = parameters["num_label"]
         if "num_sample_factor" in parameters:
-            self.parameters["num_sample_factor"] = parameters["num_sample_factor"]
+            self.parameters["num_sample_factor"] = \
+                parameters["num_sample_factor"]
         if "lambda" in parameters:
             self.parameters["lambda"] = parameters["lambda"]
             
@@ -48,10 +49,13 @@ class correlation_sampler:
         lili = 0        
 
 class instance_sampler:
+    def __init__(self, parameters):
+        no_execute = 0
+
     def sample(self, y):
-        sample = np.copy(y)         
+        sample = np.int_(y)         
         m,n = sample.shape  
-        num = np.sum(y,1)
+        num = np.sum(sample,1)
 
         for i in xrange(m):
             for j in xrange(min(num[i], int(n/2))):
@@ -67,14 +71,31 @@ class instance_sampler:
         return sample
 
 class label_sampler:
-    def __init__(self):
-        lili = 0
+    def __init__(self, parameters):
+        no_execute = 0
     def sample(self, y):
-        sample = np.copy(y)
-        
+        sample = np.copy(y)    
         return sample
 
 
+def get_sampler(sample_type, parameters):
+    
+    if "full" == sample_type:
+        return None;
+
+    elif "instance_sample" == sample_type:
+        return instance_sampler(parameters);
+
+    elif "label_sample" == sample_type:
+        return label_sampler(parameters);
+
+    elif "correlation_sample" == sample_type:
+        return correlation_sampler(parameters);
+
+    else:
+        logger = logging.getLogger(Logger.project_name);
+        logger.error("Unknown sample_type %s"%sample_type);
+        raise Exception("Unknown sample_type %s"%sample_type);
 
 
 def printUsages():

@@ -10,32 +10,32 @@ from arffio        import *
 import logging, Logger
 import pickle
 import numpy as np
-import sample
+import sampler
 
 def printUsages():
-    print "Usage: train.py [options] train_file m_file"
+    print "Usage: train.py [options] train_file model_file"
     print "options"
     print "   -i: ins lambda, the instance regularization coefficient (default 0.001)"
     print "   -l: label lambda, the label regularization coefficient (default 0.001)" 
     print "   -s: sizes, the architecture: [num_node_layer1,num_node_layer2,...] (default [])"
     print "   -b: batch, the number of instances in a batch (default 100)"
     print "   -n: num of iter, the number of iterations (default 20)"
-    print "   -f: idx file, the arff file containing sampling result (if not specified, full)"
+    print "   -t: sample_type, the sample_type"
 
 def parseParameter(argv):
-    if len(argv) < 3: #at least 4 paramters: train.py train_file m_file
+    if len(argv) < 3: #at least 4 paramters: train.py train_file model_file
         printUsages()
         exit(1)
 
     parameters = dict()
     parameters["train_file"]   = argv[len(argv) - 2]
-    parameters["m_file"]       = argv[len(argv) - 1]
+    parameters["model_file"]   = argv[len(argv) - 1]
     parameters["ins_lambda"]   = 0.001
     parameters["label_lambda"] = 0.001
     parameters["sizes"]        = [] 
     parameters["batch"]        = 100
     parameters["niter"]        = 20
-    parameters["idx_file"]     = None # When idx_file = None, full
+    parameters["sample_type"]  = "full"
    
     i = 1
     while i + 1 < len(argv) - 2:
@@ -56,8 +56,8 @@ def parseParameter(argv):
             parameters["batch"] = int(argv[i+1]) 
         elif "-n" == argv[i]:
             parameters["niter"] = int(argv[i+1])   
-        elif "-f" == argv[i]:
-            parameters["idx_file"] = argv[i+1]
+        elif "-t" == argv[i]:
+            parameters["sample_type"] = argv[i+1]
         else:
             printUsages()
             exit(1)
@@ -66,9 +66,9 @@ def parseParameter(argv):
     return parameters
 
 
-def train(train_file, idx_file, parameters):
+def train(train_file, parameters, sample = None):
     model = Model(parameters)
-    
+    sample = sampler.instance_sampler(parameters);
     
     batch = parameters["batch"]
     niter = parameters["niter"]
@@ -77,17 +77,15 @@ def train(train_file, idx_file, parameters):
         train_reader = ArffReader(train_file, batch)
 
         #idx_file specified
-        if None != idx_file:
-            idx_reader   = ArffReader(idx_file,batch)
+        if None != sample:
        
-            x, y,has_next = train_reader.read()
-            _, idx        = idx_reader.read()
+            x, y, has_next = train_reader.read()
+            idx            = sample.sample(y)
             while has_next:
                 model.update(x, y, idx)
                 x, y, has_next = train_reader.read()
-                _, idx         = idx_reader.read()
+                idx            = sample.sample(y)
 
-            idx_reader.close()
         #idx_file not specified, full
         else:
             x, y, has_next = train_reader.read()
@@ -107,10 +105,13 @@ def train(train_file, idx_file, parameters):
 if __name__ == "__main__":
     parameters = parseParameter(sys.argv)
 
-    train_file = parameters["train_file"]
-    idx_file   = parameters["idx_file"]
-    m_file     = parameters["m_file"]
-    
+    train_file  = parameters["train_file"]
+    model_file  = parameters["model_file"]
+    sample_type = parameters["sample_type"];
+       
+    # get the sample with sampler
+    sample = sampler.get_sampler(sample_type, parameters);
+
     # read a instance to know the number of features and labels
     train_reader = ArffReader(train_file, 1)
     x, y, has_next = train_reader.read()
@@ -119,10 +120,10 @@ if __name__ == "__main__":
     train_reader.close()
 
     #train   
-    model = train(train_file, idx_file, parameters) 
+    model = train(train_file, parameters, sample) 
     
     #write the model
     s = pickle.dumps(model)
-    f = open(m_file, "w")
+    f = open(model_file, "w")
     f.write(s)
     f.close()
