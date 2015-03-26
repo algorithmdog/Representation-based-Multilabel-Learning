@@ -10,9 +10,10 @@ import logging, Logger
 import pickle
 import numpy as np
 import random
+import math
 random.seed(0)
 
-class correlation_sampler:
+class CorrelationSampler:
     def __init__(self, parameters):
         self.parameters = dict()
         self.parameters["num_label"]  = 1000
@@ -27,13 +28,12 @@ class correlation_sampler:
         if "lambda" in parameters:
             self.parameters["lambda"] = parameters["lambda"]
             
-        self.num_label  = self.parameters["num_label"]
-        self.num_sample_factor = self.parameters["num_sample_factor"] 
+        num_label  = self.parameters["num_label"]
+        num_sample_factor = self.parameters["num_sample_factor"] 
+        fan_in  = num_label
+        fan_out = num_sample_factor
 
-        fan_in = num_label
-        fan_in = num_sample_factor
-        r      = math.sqrt( 6.0/(fan_in+fan_out) )
-
+        r = math.sqrt( 6.0/(fan_in+fan_out) )
         w = [ [random.random() * 2 * r - r for j in xrange(num_label)]\
                                            for i in xrange(num_sample_factor) ]
         b = [ random.random() * 2 * r -r for j in xrange(num_label) ]
@@ -48,7 +48,7 @@ class correlation_sampler:
     def sample(self, y):
         lili = 0        
 
-class instance_sampler:
+class InstanceSampler:
     def __init__(self, parameters):
         no_execute = 0
 
@@ -70,9 +70,21 @@ class instance_sampler:
                                  
         return sample
 
-class label_sampler:
+class LabelSampler:
     def __init__(self, parameters):
-        no_execute = 0
+        if "num_label" not in parameters:
+            logger = logging.getLogger(Logger.project_name);
+            logger.error("no num_label provided by paramters in label_sampler.init");           
+
+        num_label = parameters["num_label"];
+        self.num_ins    = 0;
+        self.num_labels = np.array([0 for i in xrange(num_label)]);
+    
+    def update(self, y):
+        m,n = y.shape
+        self.num_ins    += m
+        self.num_labels += np.sum(y, 0)    
+
     def sample(self, y):
         sample = np.copy(y)    
         return sample
@@ -84,13 +96,13 @@ def get_sampler(sample_type, parameters):
         return None;
 
     elif "instance_sample" == sample_type:
-        return instance_sampler(parameters);
+        return InstanceSampler(parameters);
 
     elif "label_sample" == sample_type:
-        return label_sampler(parameters);
+        return LabelSampler(parameters);
 
     elif "correlation_sample" == sample_type:
-        return correlation_sampler(parameters);
+        return CorrelationSampler(parameters);
 
     else:
         logger = logging.getLogger(Logger.project_name);
@@ -98,6 +110,7 @@ def get_sampler(sample_type, parameters):
         raise Exception("Unknown sample_type %s"%sample_type);
 
 
+backup = '''
 def printUsages():
     print "Usage: sample.py [options] origin_file sample_file"
 
@@ -121,7 +134,7 @@ def sample(parameters):
 
 if __name__ == "__main__":
     parameters = parseParameter(sys.argv)
-
+'''
 
 
 
