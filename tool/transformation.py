@@ -16,6 +16,7 @@ def printUsages():
 def parseParameters(argv):
     if len(argv) < 4: # at least 4 parameters
         printUsages();
+        exit()
 
     parameters                = dict();
     parameters["origin_file"] = argv[len(argv) - 3];
