@@ -115,7 +115,7 @@ class LabelSampler:
         return sample
 
 
-def get_sampler(sample_type, parameters):
+def get_sample(sample_type, parameters):
     
     if "full" == sample_type:
         return None

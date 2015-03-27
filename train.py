@@ -73,8 +73,6 @@ def parseParameter(argv):
 
 def train(train_file, parameters, sample = None):
     model = Model(parameters)
-    sample = sampler.instance_sampler(parameters);
-    
     batch = parameters["batch"]
     niter = parameters["niter"]
 
@@ -101,21 +99,23 @@ def train(train_file, parameters, sample = None):
                 x, y, has_next = train_reader.read()
                 idx = np.ones(y.shape)   
 
+        logger = logging.getLogger(Logger.project_name)
+        logger.info("The %d-th iteration completes"%(iter1+1));
        
         train_reader.close()
 
     return model
 
 
-if __name__ == "__main__":
-    parameters = parseParameter(sys.argv)
+def main(argv):
+    parameters = parseParameter(argv)
 
     train_file  = parameters["train_file"]
     model_file  = parameters["model_file"]
     sample_type = parameters["sample_type"];
        
     # get the sample with sampler
-    sample = sampler.get_sampler(sample_type, parameters);
+    sample = sampler.get_sample(sample_type, parameters);
 
     # read a instance to know the number of features and labels
     train_reader = ArffReader(train_file, 1)
@@ -132,3 +132,6 @@ if __name__ == "__main__":
     f = open(model_file, "w")
     f.write(s)
     f.close()
+
+if __name__ == "__main__":
+    main(sys.argv)

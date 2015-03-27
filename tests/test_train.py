@@ -23,3 +23,7 @@ class TrainTester(unittest.TestCase):
         self.argv.append("m_file");
     def test_parseParameter(self):
         parameters = train.parseParameter(self.argv);
+
+    def test_train(self):
+        argv = ["train.py","-t","full","tests/test_train_data.arff","tests/test_train_model.model"]
+        train.main(argv) 

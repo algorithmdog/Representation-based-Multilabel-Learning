@@ -1,3 +1,6 @@
 utils
+data
 *.pyc
 *.arff
+*.model
+*.sh

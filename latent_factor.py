@@ -16,8 +16,6 @@ import logging, Logger
 
 class Model:
     def __init__(self,  parameters):
-        self.counter_update = 0;
-
         self.parameters = dict()
         self.parameters["num_feature"]   = 100
         self.parameters["num_factor"]    = 100
@@ -111,10 +109,6 @@ class Model:
         self.check_dimension(x, y )
         self.bp(x, y, idx)
         self.apply()
-
-        self.counter_update += 1;
-        logger = logging.getLogger(Logger.project_name)
-        logger.info("The %d-th update completes"%self.counter_update);
 
 
     def ff(self, x):
