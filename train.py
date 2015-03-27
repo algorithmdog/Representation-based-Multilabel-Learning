@@ -21,6 +21,11 @@ def printUsages():
     print "   -b: batch, the number of instances in a batch (default 100)"
     print "   -n: num of iter, the number of iterations (default 20)"
     print "   -t: sample_type, the sample_type"
+    print "         full, full matrix"
+    print "         instance_sample, instance orient sampling scheme"
+    print "         label_sample, label orient sampling scheme"
+    print "         correlation_sample, sampling scheme exploits label correlations"
+
 
 def parseParameter(argv):
     if len(argv) < 3: #at least 4 paramters: train.py train_file model_file

@@ -65,52 +65,77 @@ class InstanceSampler:
                 while 1 == sample[i][idx]:
                     idx = int(random.random() * n)
                     if n == idx: idx = n - 1
-                sample[i, idx] = 1;
-    
-                                 
+                sample[i, idx] = 1
+                                     
         return sample
 
 class LabelSampler:
     def __init__(self, parameters):
         if "num_label" not in parameters:
-            logger = logging.getLogger(Logger.project_name);
-            logger.error("no num_label provided by paramters in label_sampler.init");           
+            logger = logging.getLogger(Logger.project_name)
+            logger.error("no num_label provided by paramters "
+                         "in label_sampler.init")           
 
-        num_label = parameters["num_label"];
-        self.num_ins    = 0;
-        self.num_labels = np.array([0 for i in xrange(num_label)]);
-    
+        num_label = parameters["num_label"]
+        self.num_ins = 0
+        self.num_labels = np.array([0 for i in xrange(num_label)])
+        self.has_normalized = False    
+
     def update(self, y):
         m,n = y.shape
         self.num_ins    += m
         self.num_labels += np.sum(y, 0)    
 
     def sample(self, y):
-        sample = np.copy(y)    
+        '''
+        if False == self.has_normalized:
+            self.num_labels = self.num_ins - self.num_labels
+            total = np.sum(self.num_labels) * 1.0
+            self.num_labels /= total
+            self.has_normalized = True
+
+        sample = np.int_(y)
+        m,n = sample.shape
+        num = np.sum(sample, 1)
+        return sample'''
+        sample = np.int_(y)
+        m,n = sample.shape
+        num = np.sum(sample,0)
+
+        for j in xrange(n):
+            for i in xrange(min(num[j], int(n/2))):
+
+                idx = int(random.random() * m)
+                if n == idx: idx = m - 1
+                while 1 == sample[idx, j]:
+                    idx = int(random.random() * m)
+                    if n == idx: idx = m - 1
+                sample[idx, j] = 1
+
         return sample
 
 
 def get_sampler(sample_type, parameters):
     
     if "full" == sample_type:
-        return None;
+        return None
 
     elif "instance_sample" == sample_type:
-        return InstanceSampler(parameters);
+        return InstanceSampler(parameters)
 
     elif "label_sample" == sample_type:
-        return LabelSampler(parameters);
+        return LabelSampler(parameters)
 
     elif "correlation_sample" == sample_type:
-        return CorrelationSampler(parameters);
+        return CorrelationSampler(parameters)
 
     else:
-        logger = logging.getLogger(Logger.project_name);
-        logger.error("Unknown sample_type %s"%sample_type);
-        raise Exception("Unknown sample_type %s"%sample_type);
+        logger = logging.getLogger(Logger.project_name)
+        logger.error("Unknown sample_type %s"%sample_type)
+        raise Exception("Unknown sample_type %s"%sample_type)
 
 
-backup = '''
+'''
 def printUsages():
     print "Usage: sample.py [options] origin_file sample_file"
 
