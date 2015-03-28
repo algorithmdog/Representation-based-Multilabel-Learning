@@ -70,21 +70,8 @@ class InstanceSampler:
         return sample
 
 class LabelSampler:
-    def __init__(self, parameters):
-        if "num_label" not in parameters:
-            logger = logging.getLogger(Logger.project_name)
-            logger.error("no num_label provided by paramters "
-                         "in label_sampler.init")           
-
-        num_label = parameters["num_label"]
-        self.num_ins = 0
-        self.num_labels = np.array([0 for i in xrange(num_label)])
-        self.has_normalized = False    
-
-    def update(self, y):
-        m,n = y.shape
-        self.num_ins    += m
-        self.num_labels += np.sum(y, 0)    
+    def __init__(self, params):
+        no_execute = 0
 
     def sample(self, y):
         '''
@@ -115,7 +102,16 @@ class LabelSampler:
         return sample
 
 
-def get_sample(sample_type, parameters):
+def get_sample(parameters):
+
+    if "sample_type" not in parameters:
+        logger = logging.getLogger(Logger.project_name)
+        logger.error("Not sample_type provided by params in "
+                     "sampler.get_sample")
+        raise Exception("Not sample_type provided by params in"
+                        " sampler.get_sample")
+    
+    sample_type = parameters["sample_type"]
     
     if "full" == sample_type:
         return None

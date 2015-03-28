@@ -114,8 +114,6 @@ def main(argv):
     model_file  = parameters["model_file"]
     sample_type = parameters["sample_type"];
        
-    # get the sample with sampler
-    sample = sampler.get_sample(sample_type, parameters);
 
     # read a instance to know the number of features and labels
     train_reader = ArffReader(train_file, 1)
@@ -125,6 +123,7 @@ def main(argv):
     train_reader.close()
 
     #train   
+    sample = sampler.get_sample(parameters);
     model = train(train_file, parameters, sample) 
     
     #write the model
