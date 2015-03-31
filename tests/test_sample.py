@@ -12,7 +12,6 @@ sys.path.append(path + "/../Python_Utils")
 from Matrix_Utils import *
 from sampler      import *
 
-random.seed(0)
 
 class SampleTester(unittest.TestCase):
     def test_get_sample(self):
@@ -39,12 +38,14 @@ class SampleTester(unittest.TestCase):
             get_sample(params)
     
     def test_sample(self):
+        random.seed(0)
+
         params = dict()
         params["sample_type"] = "instance_sample"
         y = np.array([[1,0,0,0],[0,1.0,1,0]])
         ins_sample = get_sample(params)
         idx = ins_sample.sample(y)
-        true = np.array([[1,1,0,0],[1,1,1,1]])
+        true = np.array([[1,0,0,1],[1,1,1,1]])
         self.assertTrue(is_matrix_equals(true, idx))    
 
         params = dict()

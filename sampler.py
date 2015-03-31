@@ -90,7 +90,7 @@ class LabelSampler:
         num = np.sum(sample,0)
 
         for j in xrange(n):
-            for i in xrange(min(num[j], int(n/2))):
+            for i in xrange(min(num[j], int(m/2))):
 
                 idx = int(random.random() * m)
                 if n == idx: idx = m - 1

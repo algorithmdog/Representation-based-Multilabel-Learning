@@ -76,6 +76,9 @@ def train(train_file, parameters, sample = None):
     batch = parameters["batch"]
     niter = parameters["niter"]
 
+    logger = logging.getLogger(Logger.project_name)
+    logger.info("The latent_factor model starts")
+
     for iter1 in xrange(niter): 
         train_reader = ArffReader(train_file, batch)
 
@@ -99,10 +102,10 @@ def train(train_file, parameters, sample = None):
                 x, y, has_next = train_reader.read()
                 idx = np.ones(y.shape)   
 
-        logger = logging.getLogger(Logger.project_name)
-        logger.info("The %d-th iteration completes"%(iter1+1));
-       
+        logger.info("The %d-th iteration completes"%(iter1+1)); 
         train_reader.close()
+
+    logger.info("The latent_factor model completes")
 
     return model
 
