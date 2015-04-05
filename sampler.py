@@ -90,14 +90,20 @@ class LabelSampler:
         num = np.sum(sample,0)
 
         for j in xrange(n):
-            for i in xrange(min(num[j], int(m/2))):
-
-                idx = int(random.random() * m)
-                if n == idx: idx = m - 1
-                while 1 == sample[idx, j]:
+            samplenum = min(num[j], m - num[j])
+            #
+            if samplenum == m - num[j]:
+                sample[:,j:j+1] = 1
+            # 
+            else:             
+                for i in xrange(samplenum):
                     idx = int(random.random() * m)
                     if n == idx: idx = m - 1
-                sample[idx, j] = 1
+                    while 1 == sample[idx, j]:
+                        idx = int(random.random() * m)
+                        if n == idx: idx = m - 1
+
+                    sample[idx, j] = 1
 
         return sample
 
