@@ -15,6 +15,7 @@ import sampler
 def printUsages():
     print "Usage: train.py [options] train_file model_file"
     print "options"
+    print "   -m: 1 denote the train with all data in mem, 0 denote sgd (default 1)"
     print "   -i: ins lambda, the instance regularization coefficient (default 0.001)"
     print "   -l: label lambda, the label regularization coefficient (default 0.001)" 
     print "   -s: sizes, the architecture: [num_node_layer1,num_node_layer2,...] (default [])"
@@ -41,6 +42,7 @@ def parseParameter(argv):
     parameters["batch"]        = 100
     parameters["niter"]        = 20
     parameters["sample_type"]  = "full"
+    parameters["mem"]          = 1
    
     i = 1
     while i + 1 < len(argv) - 2:
@@ -69,6 +71,37 @@ def parseParameter(argv):
         i += 2
 
     return parameters
+
+def train_mem(train_file, parameters, sample = None):
+    model = Model(parameters)
+    batch = parameters["batch"]
+    niter = parameters["niter"]
+    
+    logger = logging.getLogger(Logger.project_name)
+    logger.info("The latent_factor model starts")
+
+    train_reader = ArffReader(train_file, 1000000000000000000)
+    x,y,has_next = train_reader.read()
+    num = len(y);
+
+    for iter1 in xrange(niter):
+        start = 0
+        end = batch
+        while start < num:
+            if end > num:   end = num
+
+            batch_x = x[start:end, :]
+            batch_y = y[start:end, :] 
+            if None == sample:  idx_y = batch_y
+            else:   idx_y = sample.sample(batch_y)
+            model.update(batch_x, batch_y, idx_y)      
+
+            start += batch;
+            end += batch;
+
+        logger.info("The %d-th iteration completes"%(iter1+1));
+
+    return model
 
 
 def train(train_file, parameters, sample = None):
@@ -116,7 +149,7 @@ def main(argv):
     train_file  = parameters["train_file"]
     model_file  = parameters["model_file"]
     sample_type = parameters["sample_type"];
-       
+    mem         = parameters["mem"]
 
     # read a instance to know the number of features and labels
     train_reader = ArffReader(train_file, 1)
@@ -127,8 +160,11 @@ def main(argv):
 
     #train   
     sample = sampler.get_sample(parameters);
-    model = train(train_file, parameters, sample) 
-    
+    if 1 == mem:
+        model = train_mem(train_file, parameters, sample) 
+    else:
+        model = train(train_file, parameters, sample)    
+
     #write the model
     s = pickle.dumps(model)
     f = open(model_file, "w")

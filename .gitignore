@@ -3,3 +3,4 @@ data
 *.pyc
 *.arff
 *.model
+nohup.out
