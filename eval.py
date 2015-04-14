@@ -96,28 +96,30 @@ def label_F(p,t):
     psum = np.sum(p,0)
     tsum = np.sum(t,0)
     F = 0.0
+
     for j in xrange(n):
         correct = 0
-        for i in xrange(n):
+        for i in xrange(m):
             if eq(p[i,j],1) and eq(t[i,j],1):
                 correct += 1
 
         pre = 0.0
-        if eq(psum[i],0):
+        if eq(psum[j],0):
             pre = 0.0
         else:
-            pre = correct * 1.0 / psum[i]
+            pre = correct * 1.0 / psum[j]
 
         rec = 0.0
-        if eq(tsum[i],0):
+        if eq(tsum[j],0):
             rec =  0.0
         else:
-            rec = correct * 1.0 / tsum[i]
+            rec = correct * 1.0 / tsum[j]
 
         if eq(pre,0) and eq(rec,0):
             F += 0
         else:
             F += 2*pre*rec/(pre+rec)
+        print j,F;
 
     return F/n
 

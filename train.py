@@ -15,7 +15,7 @@ import sampler
 def printUsages():
     print "Usage: train.py [options] train_file model_file"
     print "options"
-    print "   -m: 1 denote the train with all data in mem, 0 denote sgd (default 1)"
+    print "   -m: 1 denote the train with all data in mem, 0 denote sgd (default 0)"
     print "   -i: ins lambda, the instance regularization coefficient (default 0.001)"
     print "   -l: label lambda, the label regularization coefficient (default 0.001)" 
     print "   -s: sizes, the architecture: [num_node_layer1,num_node_layer2,...] (default [])"
@@ -65,6 +65,8 @@ def parseParameter(argv):
             parameters["niter"] = int(argv[i+1])   
         elif "-t" == argv[i]:
             parameters["sample_type"] = argv[i+1]
+        elif "-m" == argv[i]:
+            parameters["mem"]  = int(argv[i+1])
         else:
             printUsages()
             exit(1)
@@ -82,8 +84,7 @@ def train_mem(train_file, parameters, sample = None):
 
     train_reader = ArffReader(train_file, 1000000000000000000)
     x,y,has_next = train_reader.read()
-    num = len(y);
-
+    num = len(y)
     for iter1 in xrange(niter):
         start = 0
         end = batch
@@ -92,7 +93,7 @@ def train_mem(train_file, parameters, sample = None):
 
             batch_x = x[start:end, :]
             batch_y = y[start:end, :] 
-            if None == sample:  idx_y = batch_y
+            if None == sample:  idx_y = np.ones(batch_y.shape)
             else:   idx_y = sample.sample(batch_y)
             model.update(batch_x, batch_y, idx_y)      
 

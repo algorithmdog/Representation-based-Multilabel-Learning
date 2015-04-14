@@ -25,19 +25,19 @@ class TrainTester(unittest.TestCase):
         parameters = train.parseParameter(self.argv);
 
     def test_train(self):
-        argv = ["train.py","-b","2","-t","full",\
+        argv = ["train.py","-n","2","-b","2","-t","full",\
                 "tests/test_train_data.arff",\
                 "tests/test_train_model.model"]
         train.main(argv) 
 
         
-        argv = ["train.py","-b","2","-t","instance_sample",\
+        argv = ["train.py","-n","2","-b","2","-t","instance_sample",\
                 "tests/test_train_data.arff",\
                 "tests/test_train_model.model"]
         train.main(argv)
 
         
-        argv = ["train.py","-b","2","-t","label_sample",\
+        argv = ["train.py","-n","2","-b","2","-t","label_sample",\
                 "tests/test_train_data.arff",\
                 "tests/test_train_model.model"]
         train.main(argv)
