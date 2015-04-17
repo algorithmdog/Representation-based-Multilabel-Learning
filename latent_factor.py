@@ -16,18 +16,18 @@ import logging, Logger
 
 class Model:
     def __init__(self,  parameters):
-        self.counter_update = 0;
-
         self.parameters = dict()
         self.parameters["num_feature"]   = 100
-        self.parameters["num_factor"]    = 100
+        self.parameters["num_factor"]    = 500
         self.parameters["num_label"]     = 1000
         self.parameters["sizes"]         = [100]
         self.parameters["hidden_active"] = "tanh"
         self.parameters["output_active"] = "sgmoid"
         self.parameters["loss"]          = "negative_log_likelihood"
+        self.parameters["learnrate"]     = 0.1
         self.parameters["ins_lambda"]    = 0.001
         self.parameters["label_lambda"]  = 0.001
+        self.parameters["mem"]           = 0
         
         if "num_feature" in parameters:
             self.parameters["num_feature"]   = parameters["num_feature"]
@@ -43,10 +43,14 @@ class Model:
             self.parameters["output_active"] = parameters["output_active"]
         if "loss"          in parameters:
             self.parameters["loss"]          = parameters["loss"]
+        if "learnrate" in parameters:
+            self.parameters["learnrate"]     = parameters["learnrate"]
         if "ins_lambda"    in parameters:
             self.parameters["ins_lambda"]    = parameters["ins_lambda"]
         if "label_lambda"  in parameters:
             self.parameters["label_lambda"]  = parameters["label_lambda"]
+        
+
 
         self.num_feature = self.parameters["num_feature"]
         self.num_factor  = self.parameters["num_factor"]
@@ -90,18 +94,20 @@ class Model:
     def check_dimension(self, x, y = None):
         m,n = x.shape
         if n != self.num_feature:
-            Logger.instance.error("The self.num_feature (%d) != the actual num of "
-                                  "features (%d)"%(self.num_feature, n))
-            raise       Exception("The self.num_feature (%d) != the actual num of"
-                                  " features (%d)"%(self.num_feature, n))    
+            logger = logging.getLogger(Logger.project_name);
+            logger.error("The self.num_feature (%d) != the actual num of "
+                         "features (%d)"%(self.num_feature, n));
+            raise Exception("The self.num_feature (%d) != the actual num of"
+                            " features (%d)"%(self.num_feature, n));    
 
         if None == y: return True
         m,n = y.shape
         if n != self.num_label:
-            Logger.instance.error("The self.num_label (%d) != the actual num of "
-                                  "label (%d)"%(self.num_label, n))
-            raise       Exception("The self.num_label (%d) != the actual num of "
-                                  "label %d"%(self.num_label, n))
+            logger = logging.getLogger(logger.project_name);
+            logger.error("The self.num_label (%d) != the actual num of "
+                         "label (%d)"%(self.num_label, n));
+            raise Exception("The self.num_label (%d) != the actual num of "
+                            "label %d"%(self.num_label, n));
             
         return True
 
@@ -109,10 +115,6 @@ class Model:
         self.check_dimension(x, y )
         self.bp(x, y, idx)
         self.apply()
-
-        self.counter_update += 1;
-        logger = logging.getLogger(Logger.project_name)
-        logger.info("The %d-th update completes"%self.counter_update);
 
 
     def ff(self, x):
@@ -218,15 +220,17 @@ class Model:
             tmp = np.dot( tmp, np.transpose(self.w[i]) )
     
     def apply(self):
+        learn_rate   = self.parameters["learnrate"]
         ins_lambda   = self.parameters["ins_lambda"]
         label_lambda = self.parameters["label_lambda"] 
         n_layer      = len(self.w)
         for i in xrange(n_layer):
-            self.w[i] -= ins_lambda * self.grad_w[i]
-            self.b[i] -= ins_lambda * self.grad_b[i]
+            self.w[i] -= learn_rate * ( self.grad_w[i] \
+                                      + 2 * ins_lambda * self.w[i])
+            self.b[i] -= learn_rate * ( self.grad_b[i] )
         
-        self.lb -= label_lambda * self.grad_lb
-        self.lw -= label_lambda * self.grad_lw
+        self.lb -= learn_rate * self.grad_lb
+        self.lw -= learn_rate * (self.grad_lw + 2 * label_lambda * self.lw[i])
         
     def revoke(self):        
         ins_lambda   = self.parameters["ins_lambda"]
