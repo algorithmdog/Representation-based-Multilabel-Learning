@@ -15,7 +15,9 @@ import sampler
 def printUsages():
     print "Usage: train.py [options] train_file model_file"
     print "options"
-    print "   -m: 1 denote the train with all data in mem, 0 denote sgd (default 0)"
+    print "   -m: training with all data in mem (default 0)"
+    print "         0, a part of training data in mem"
+    print "         1, all data in mem, 0 denote sgd"
     print "   -i: ins lambda, the instance regularization coefficient (default 0.001)"
     print "   -l: label lambda, the label regularization coefficient (default 0.001)" 
     print "   -s: sizes, the architecture: [num_node_layer1,num_node_layer2,...] (default [])"
@@ -82,9 +84,9 @@ def train_mem(train_file, parameters, sample = None):
     logger = logging.getLogger(Logger.project_name)
     logger.info("The latent_factor model starts")
 
-    train_reader = ArffReader(train_file, 1000000000000000000)
-    x,y,has_next = train_reader.read()
-    num = len(y)
+    train_reader = ArffReader(train_file)
+    x,y = train_reader.full_read_sparse()
+    num, _ = y.shape
     for iter1 in xrange(niter):
         start = 0
         end = batch
@@ -118,22 +120,22 @@ def train(train_file, parameters, sample = None):
 
         #idx_file specified
         if None != sample:
-       
-            x, y, has_next = train_reader.read()
+
+            x, y, has_next = train_reader.read_sparse()
             idx            = sample.sample(y)
             while has_next:
                 model.update(x, y, idx)
-                x, y, has_next = train_reader.read()
+                x, y, has_next = train_reader.read_sparse()
                 idx            = sample.sample(y)
 
         #idx_file not specified, full
         else:
-            x, y, has_next = train_reader.read()
+            x, y, has_next = train_reader.read_sparse()
             idx            = np.ones(y.shape)
 
             while has_next:
                 model.update(x, y, idx)    
-                x, y, has_next = train_reader.read()
+                x, y, has_next = train_reader.read_sparse()
                 idx = np.ones(y.shape)   
 
         logger.info("The %d-th iteration completes"%(iter1+1)); 

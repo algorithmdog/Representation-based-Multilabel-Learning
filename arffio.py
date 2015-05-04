@@ -7,6 +7,8 @@ sys.path.append(path + '../utils/Python_Utils')
 sys.path.append(path + '/utils/liac-arff')
 sys.path.append(path + '../utils/liac-arff')
 import numpy as np
+import scipy as sc
+import scipy.sparse as sp
 import arff
 import logging,Logger
 
@@ -44,6 +46,27 @@ class ArffReader:
         #a multiple of the size of batch.  
          
         self.nextobj = None
+
+
+    def full_read_sparse(self):
+        x, y, has_next = self.read_sparse()
+        while True == has_next:
+            ix, iy, has_next = self.read_sparse()
+            x = sp.vstack([x,ix], 'csr')
+            y = sp.vstack([y,iy], 'csr')
+        return x,y
+
+    def full_read(self):
+        x, y, has_next = self.read()
+        while has_next:
+            ix, iy, has_next = self.read()
+            x = np.vstack([x,ix])
+            y = np.vstack([y,iy])
+        return x,y;
+
+    def read_sparse(self):
+        x, y, has_next = self.read()
+        return sp.csr_matrix(x), sp.csr_matrix(y), has_next
 
     def read(self):
         x = None

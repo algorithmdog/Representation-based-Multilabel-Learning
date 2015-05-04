@@ -10,7 +10,7 @@ sys.path.append(path + "/../Python_Utils");
 from Matrix_Utils  import *;
 from latent_factor import *;
 import unittest;
-
+import scipy.sparse as sp
 import pickle;
 
 class LatentFactorTester(unittest.TestCase):
@@ -87,6 +87,17 @@ class LatentFactorTester(unittest.TestCase):
         output = model.ff(x);
         self.assertTrue(is_matrix_equals(output, expect), True);
     
+        
+        ##sparse
+        model  = self.init_model();
+        x      = sp.csr_matrix([[1,2],[0,1]]);
+        expect = np.array([[0.5025559745374354, 0.5025559745374354],\
+                           [0.502552977413684,  0.502552977413684]]);
+        output = model.ff(x);
+        self.assertTrue(is_matrix_equals(output, expect), True);
+
+
+
         #s = pickle.dumps(output);
         #f = open("output","w");
         #f.write(s);
@@ -97,6 +108,36 @@ class LatentFactorTester(unittest.TestCase):
         x     = np.array([[1,2],[0,1]]);
         y     = np.array([[1,0],[0,1]]);
         idx   = np.array([[1,1],[1,1]]);
+        model.bp(x, y, idx);
+
+        grad_lb  = np.array([0.0051089519511194892, 0.0051089519511194892]);
+        grad_lb /= 2;
+        self.assertTrue(is_matrix_equals(grad_lb, model.grad_lb));
+
+        grad_lw  = np.array([[-0.00024403,  0.00035541],[-0.00024403,  0.00035541]]);
+        grad_lw /= 2;
+        self.assertTrue(is_matrix_equals(grad_lw, model.grad_lw));
+
+        grad_b1 = np.array([  2.55597454e-05,   2.55297741e-05]);
+        self.assertTrue(is_matrix_equals(grad_b1, model.grad_b[1]));
+        grad_w1 = np.array([[  7.66186099e-07,   7.66186099e-07],\
+                            [  7.66186099e-07,   7.66186099e-07],\
+                            [  7.66186099e-07,   7.66186099e-07]]);
+        self.assertTrue(is_matrix_equals(grad_w1, model.grad_w[1]));
+
+
+        grad_b0 = np.array([5.10895195e-07, 5.10895195e-07, 5.10895195e-07])
+        self.assertTrue(is_matrix_equals(grad_b0, model.grad_b[0]));
+        grad_w0 = np.array([[2.55597454e-07,  2.55597454e-07,  2.55597454e-07],\
+                            [7.66492649e-07,  7.66492649e-07,  7.66492649e-07]])
+        self.assertTrue(is_matrix_equals(grad_w0, model.grad_w[0]));
+
+
+        ##sparse 
+        model = self.init_model();
+        x     = sp.csr_matrix([[1,2],[0,1]]);
+        y     = sp.csr_matrix([[1,0],[0,1]]);
+        idx   = sp.csr_matrix([[1,1],[1,1]]);
         model.bp(x, y, idx);
 
         grad_lb  = np.array([0.0051089519511194892, 0.0051089519511194892]);

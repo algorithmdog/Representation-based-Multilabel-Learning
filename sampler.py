@@ -6,12 +6,14 @@ sys.path.append(path + "/utils/Python_Utils")
 sys.path.append(path + "/../utils/Python_Utils")
 
 from arffio import *
+from util   import *
 import logging, Logger
 import pickle
 import numpy as np
 import random
 import math
 random.seed(0)
+
 
 class CorrelationSampler:
     def __init__(self, parameters):
@@ -53,16 +55,20 @@ class InstanceSampler:
         no_execute = 0
 
     def sample(self, y):
-        sample = np.int_(y)         
+        #sample = np.int_(y)  
+        sample = sp.lil_matrix(y)  
         m,n = sample.shape  
-        num = np.sum(sample,1)
+        #num = np.sum(sample,1)
+        num = sparse_sum(sample,1)
+        for i in xrange(len(num)):
+            num[i] = int(num[i])
 
         for i in xrange(m):
             for j in xrange(min(num[i], int(n/2))):
 
                 idx = int(random.random() * n)
                 if n == idx: idx = n - 1
-                while 1 == sample[i][idx]:
+                while 1 == sample[i, idx]:
                     idx = int(random.random() * n)
                     if n == idx: idx = n - 1
                 sample[i, idx] = 1
@@ -85,15 +91,19 @@ class LabelSampler:
         m,n = sample.shape
         num = np.sum(sample, 1)
         return sample'''
-        sample = np.int_(y)
+        sample = sp.lil_matrix(y)
         m,n = sample.shape
-        num = np.sum(sample,0)
+        #num = np.sum(sample,0)
+        num = sparse_sum(sample, 0)
+        for i in xrange(len(num)):
+            num[i] = int(num[i])
 
         for j in xrange(n):
             samplenum = min(num[j], m - num[j])
             #
             if samplenum == m - num[j]:
-                sample[:,j:j+1] = 1
+                for i in xrange(m):
+                    sample[i,j] = 1
             # 
             else:             
                 for i in xrange(samplenum):
