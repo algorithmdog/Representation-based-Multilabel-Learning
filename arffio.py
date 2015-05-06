@@ -50,6 +50,10 @@ class ArffReader:
 
     def full_read_sparse(self):
         x, y, has_next = self.read_sparse()
+        ##setting the larger batch
+        num = len(x[0]) + len(y[0])
+        self.batch = max( 100000000 / num, self.batch)
+
         while True == has_next:
             ix, iy, has_next = self.read_sparse()
             x = sp.vstack([x,ix], 'csr')
