@@ -91,6 +91,7 @@ def train_mem(train_file, parameters, sample = None):
         start = 0
         end = batch
         while start < num:
+            print start, end
             if end > num:   end = num
 
             batch_x = x[start:end, :]

@@ -252,15 +252,14 @@ class Model:
         n_layer   = len(self.w)
         tmp       = x
 
-        for i in xrange(len(self.w) - 1):
+        for i in xrange(n_layer):
             if i == 0 and type(x) == type(sp.csr_matrix([[0]])):
                 tmp = tmp * self.w[i]
             else:
                 tmp  = np.dot(tmp, self.w[i])
             tmp += np.tile(self.b[i], [n_ins,1] )
             tmp  = active( tmp, self.parameters["hidden_active"] ) 
-        tmp  = np.dot(tmp, self.w[n_layer-1])
-        tmp += np.tile(self.b[n_layer-1], [n_ins,1] )
+ 
 
         output  = np.dot( tmp, self.lw ) 
         output += np.tile(self.lb,[n_ins, 1])  
