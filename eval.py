@@ -134,10 +134,10 @@ if __name__ == "__main__":
     _, t, has_next = reader.read()
 
     ham = hamming(p, t)
-    print "hamming loss:%f"%ham
+    print "hamming loss:%f|"%ham,
 
     ins_f = instance_F(p,t)
-    print "ins_f:%f"%ins_f
+    print "ins_f:%f|"%ins_f,
 
     label_f = label_F(p,t)
-    print "label_f:%f"%label_f
+    print "label_f:%f|"%label_f

@@ -61,7 +61,7 @@ class InstanceSampler:
         #num = np.sum(sample,1)
         num = sparse_sum(sample,1)
         for i in xrange(len(num)):
-            num[i] = int(num[i])
+            num[i] =  int(num[i])
 
         for i in xrange(m):
             for j in xrange(min(num[i], int(n/2))):
@@ -72,7 +72,7 @@ class InstanceSampler:
                     idx = int(random.random() * n)
                     if n == idx: idx = n - 1
                 sample[i, idx] = 1
-                                     
+                     
         return sample
 
 class LabelSampler:

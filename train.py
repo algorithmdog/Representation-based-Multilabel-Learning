@@ -10,6 +10,7 @@ from arffio        import *
 import logging, Logger
 import pickle
 import numpy as np
+import scipy.sparse as sp
 import sampler
 
 def printUsages():
@@ -87,18 +88,23 @@ def train_mem(train_file, parameters, sample = None):
     train_reader = ArffReader(train_file)
     x,y = train_reader.full_read_sparse()
     num, _ = y.shape
+    if None == sample: idx_y = sp.csr_matrix(np.ones(y.shape))
+    else: idx_y = sp.csr_matrix(sampe.sample(y))
+
+    logger.info("Training data loading done")
     for iter1 in xrange(niter):
         start = 0
         end = batch
         while start < num:
-            print start, end
+            #print start, end
             if end > num:   end = num
 
             batch_x = x[start:end, :]
             batch_y = y[start:end, :] 
-            if None == sample:  idx_y = np.ones(batch_y.shape)
-            else:   idx_y = sample.sample(batch_y)
-            model.update(batch_x, batch_y, idx_y)      
+            #batch_i = idx_y[start:end,:]
+            if None == sample: batch_i = sp.lil_matrix(np.ones(batch_y.shape))
+            else: batch_i = sampe.sample(batch_y)
+            model.update(batch_x, batch_y, batch_i)      
 
             start += batch;
             end += batch;
@@ -132,12 +138,12 @@ def train(train_file, parameters, sample = None):
         #idx_file not specified, full
         else:
             x, y, has_next = train_reader.read_sparse()
-            idx            = np.ones(y.shape)
+            idx            = sp.lil_matrix(np.ones(y.shape))
 
             while has_next:
                 model.update(x, y, idx)    
                 x, y, has_next = train_reader.read_sparse()
-                idx = np.ones(y.shape)   
+                idx = sp.lil_matrix(np.ones(y.shape))   
 
         logger.info("The %d-th iteration completes"%(iter1+1)); 
         train_reader.close()
