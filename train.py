@@ -90,8 +90,9 @@ def train_mem(train_file, parameters, sample = None):
     num, _ = y.shape
     #if None == sample: idx_y = sp.csr_matrix(np.ones(y.shape))
     #else: idx_y = sp.csr_matrix(sample.sample(y))
-
     logger.info("Training data loading done")
+
+
     for iter1 in xrange(niter):
         start = 0
         end = batch
@@ -121,6 +122,7 @@ def train(train_file, parameters, sample = None):
 
     logger = logging.getLogger(Logger.project_name)
     logger.info("The latent_factor model starts")
+
 
     for iter1 in xrange(niter): 
         train_reader = ArffReader(train_file, batch)

@@ -138,15 +138,15 @@ class Model:
     def __init__(self,  parameters):
         self.parameters = dict()
         self.parameters["num_feature"]   = 100
-        self.parameters["num_factor"]    = 5
+        self.parameters["num_factor"]    = 500
         self.parameters["num_label"]     = 1000
         self.parameters["sizes"]         = []
         self.parameters["hidden_active"] = "tanh"
         self.parameters["output_active"] = "sgmoid"
         self.parameters["loss"]          = "negative_log_likelihood"
         self.parameters["learnrate"]     = 0.1
-        self.parameters["ins_lambda"]    = 1
-        self.parameters["label_lambda"]  = 1
+        self.parameters["ins_lambda"]    = 0.001
+        self.parameters["label_lambda"]  = 0.001
         self.parameters["mem"]           = 0
         
         if "num_feature" in parameters:
@@ -217,6 +217,7 @@ class Model:
         #self.rater = LearnRate(self)
         #self.rater = AdaGrad(self)
         self.rater = AdaDelta(self)        
+        
 
     def check_dimension(self, x, y = None):
         m,n = x.shape
@@ -293,7 +294,8 @@ class Model:
             else:
                 tmp = np.dot( tmp, self.w[i] )
             tmp += np.tile(self.b[i], [n,1] )
-            
+           
+            check_large_value_in_hidden=''' 
             m1,n1 = tmp.shape
             flag = False
             for ii in xrange(m1):
@@ -302,9 +304,15 @@ class Model:
                         print ii,jj,tmp[ii,jj]
                         flag = True
             if True == flag:
-                print self.w[i]                
+                print self.w[i]  
+                m1,n1 = self.w[i].shape              
+                for ii in xrange(m1):
+                    for jj in xrange(n1):
+                        if self.w[i][ii,jj] > 1:
+                            print ii,jj,self.w[i][ii,jj]
                 print self.b[i]
-        
+            '''        
+
             tmp  = active( tmp, self.parameters["hidden_active"] )
             hidden_output.append(tmp)
         ins_factor = tmp
