@@ -140,4 +140,4 @@ if __name__ == "__main__":
     print "ins_f:%f|"%ins_f,
 
     label_f = label_F(p,t)
-    print "label_f:%f"%label_f
+    print "label_f:%f|"%label_f

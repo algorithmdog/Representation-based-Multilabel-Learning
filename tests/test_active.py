@@ -21,7 +21,8 @@ class ActiveTester(unittest.TestCase):
         
         # test tanh
         a = np.array([[0.1,-0.2],[0,10]]);
-        standard = np.array([[0.09966799462495582, -0.197375320224904],[0, 1]]);
+        standard = np.array([[0.099667994624955902, -0.197375320224904],\
+                             [0                   ,  0.99999999587769262]]);
         a_tanh = active.active(a, "tanh");
         self.assertTrue(is_matrix_equals(a_tanh, standard));
 

@@ -7,7 +7,8 @@ sys.path.append(path)
 sys.path.append(path + "/../utils/Python_Utils")
 sys.path.append(path + "/../Python_Utils")
 
-from active import *
+from active       import *
+from Matrix_Utils import *
 import numpy as np
 import scipy.sparse as sp
 import util
@@ -15,6 +16,7 @@ import math
 import pickle
 import random
 import logging, Logger
+import types
 
 class LearnRate:
     def __init__(self, model):
@@ -138,7 +140,7 @@ class Model:
         self.parameters["num_feature"]   = 100
         self.parameters["num_factor"]    = 500
         self.parameters["num_label"]     = 1000
-        self.parameters["sizes"]         = [100]
+        self.parameters["sizes"]         = []
         self.parameters["hidden_active"] = "tanh"
         self.parameters["output_active"] = "sgmoid"
         self.parameters["loss"]          = "negative_log_likelihood"
@@ -215,6 +217,7 @@ class Model:
         #self.rater = LearnRate(self)
         #self.rater = AdaGrad(self)
         self.rater = AdaDelta(self)        
+        
 
     def check_dimension(self, x, y = None):
         m,n = x.shape
@@ -237,6 +240,11 @@ class Model:
         return True
 
     def update(self, x, y, idx):
+        #print 'update'
+        #print 'y'
+        #print y.todense()
+        #print 'idx'
+        #print idx.todense()
         self.check_dimension(x, y )
         self.bp(x, y, idx)
         self.rater.update_before_paramupdate(self)
@@ -258,6 +266,7 @@ class Model:
             else:
                 tmp  = np.dot(tmp, self.w[i])
             tmp += np.tile(self.b[i], [n_ins,1] )
+            #if i != n_layer - 1:
             tmp  = active( tmp, self.parameters["hidden_active"] ) 
  
 
@@ -285,14 +294,29 @@ class Model:
             else:
                 tmp = np.dot( tmp, self.w[i] )
             tmp += np.tile(self.b[i], [n,1] )
+           
+            check_large_value_in_hidden=''' 
+            m1,n1 = tmp.shape
+            flag = False
+            for ii in xrange(m1):
+                for jj in xrange(n1):
+                    if tmp[ii,jj] > 500:
+                        print ii,jj,tmp[ii,jj]
+                        flag = True
+            if True == flag:
+                print self.w[i]  
+                m1,n1 = self.w[i].shape              
+                for ii in xrange(m1):
+                    for jj in xrange(n1):
+                        if self.w[i][ii,jj] > 1:
+                            print ii,jj,self.w[i][ii,jj]
+                print self.b[i]
+            '''        
+
             tmp  = active( tmp, self.parameters["hidden_active"] )
             hidden_output.append(tmp)
-
         ins_factor = tmp
-        #ins_factor  = np.dot( tmp, self.w[ n_layer - 1 ] )
-        #ins_factor += np.tile( self.b[ n_layer - 1], [n,1] )
 
-        ## compute the output
         output  = np.zeros(y.shape)
         m,n     = output.shape
         xy = idx.nonzero()
@@ -303,52 +327,45 @@ class Model:
             output[i,j] += self.lb[j]
         output  = active( output, self.parameters["output_active"] )         
 
-        ##compute grad of instance factor and label_factor(lw)
+        #---------------------------------------------------
+        #compute the grad
+        #---------------------------------------------------
+        num_rates,_ = idx.shape
         grad_type    = self.parameters["output_active"] \
                        + "_" \
                        + self.parameters["loss"]
         output_grad  = grad( output, y, grad_type )
 
+        
+        ## compute grad of label_factor and label_bias
+        self.grad_lw = np.zeros(self.grad_lw.shape)
+        self.grad_lb = np.zeros(self.grad_lb.shape)
+        xy = idx.nonzero()
+        for k in xrange(len(xy[0])):
+                i = xy[0][k]   
+                j = xy[1][k]
+                self.grad_lw[:,j:j+1] += output_grad[i,j] \
+                                         * np.transpose(ins_factor[i:i+1,:])
+                self.grad_lb[j]       += output_grad[i,j]
+        for j in xrange(n):
+            self.grad_lw[:, j:j+1] /= num_rates #sum_up_to_down[j]
+            self.grad_lb[j]        /= num_rates #sum_up_to_down[j]
+        
+
         ## compute grad of instance factor
-        sum_up_to_down      = util.sparse_sum(idx,0)
-        sum_left_to_right   = util.sparse_sum(idx,1)
         ins_factor_grad     = np.zeros(ins_factor.shape)
         xy = idx.nonzero()
         for k in xrange(len(xy[0])):
             i = xy[0][k]
             j = xy[1][k]
             ins_factor_grad[i:i+1,:]   += output_grad[i,j] \
-                                           * np.transpose(self.lw[:, j:j+1])
-        
-        #for i in xrange(m):
-        #    if 0 == sum_left_to_right[i]:   continue
-        #    ins_factor_grad[i:i+1,:] /= sum_left_to_right[i]
-
-        ## compute grad of label_factor and label_bias
-        self.grad_lw = np.zeros(self.grad_lw.shape)
-        self.grad_lb = np.zeros(self.grad_lb.shape)
-        for i in xrange(m):
-            for j in xrange(n):
-                if 0 == idx[i,j]: continue
-                self.grad_lw[:,j:j+1] += output_grad[i,j] \
-                                         * np.transpose(ins_factor[i:i+1,:])
-                self.grad_lb[j]       += output_grad[i,j]
-        for j in xrange(n):
-            if 0 == sum_up_to_down[j]:  continue
-            self.grad_lw[:, j:j+1] /= sum_up_to_down[j]
-            self.grad_lb[j]        /= sum_up_to_down[j]
-        
-
-        ## compute grad of w and b
-        num_rates = 0
-        for i in xrange(len(sum_up_to_down)):
-            num_rates += sum_up_to_down[i]
+                                          * np.transpose(self.lw[:, j:j+1])
 
         tmp = ins_factor_grad
         for i in xrange( len(self.w) - 1, -1, -1):
+            tmp = tmp * grad(tmp, type =  self.parameters["hidden_active"] )
             if 0 == i and type(x) == type(sp.csr_matrix([[0]])):
                 self.grad_w[i] = np.transpose(x) * tmp / num_rates
-                #self.grad_w[i] = np.dot( np.transpose(x), tmp ) / num_rates
             elif 0 == i:
                 self.grad_w[i] = np.dot( np.transpose(x), tmp ) / num_rates
             else:
@@ -359,7 +376,6 @@ class Model:
             if 0 == i:  continue
             tmp = np.dot( tmp, np.transpose(self.w[i]) )
 
-        
     
     def apply(self):
         learn_rate   = self.parameters["learnrate"]
@@ -369,20 +385,26 @@ class Model:
         for i in xrange(n_layer):
             self.w[i] -= self.rater.rate_w[i] * ( self.grad_w[i] \
                                                   + 2 * ins_lambda * self.w[i])
-            self.b[i] -= self.rater.rate_b[i] * ( self.grad_b[i] )
+            self.b[i] -= self.rater.rate_b[i] * ( self.grad_b[i] \
+                                                  + 2 * ins_lambda * self.b[i])
         
-        self.lb -= self.rater.rate_lb * self.grad_lb
-        self.lw -= self.rater.rate_lw * (self.grad_lw + 2 * label_lambda * self.lw[i])
+        self.lb -= self.rater.rate_lb * (self.grad_lb + 2 * label_lambda * self.lb)
+        self.lw -= self.rater.rate_lw * (self.grad_lw + 2 * label_lambda * self.lw)
         
     def revoke(self):        
         ins_lambda   = self.parameters["ins_lambda"]
         label_lambda = self.parameters["label_lambda"] 
         n_layer      = len(self.w)
         for i in xrange(n_layer):
-            self.w[i] += self.rater.rate_w[i] * (self.grad_w[i] + 2 * ins_lambda * self.w[i])
-            self.b[i] += self.rater.rate_b[i] * self.grad_b[i]
-        self.lw += self.rater.rate_lw * (self.grad_lw + 2 * label_lambda * self.lw[i])
-        self.lb += self.rater.rate_lb * self.grad_lb
+            self.w[i] += self.rater.rate_w[i] * (self.grad_w[i] \
+                                                 + 2 * ins_lambda * self.w[i])
+            self.b[i] += self.rater.rate_b[i] * (self.grad_b[i]\
+                                                 + 2 * ins_lambda * self.b[i])
+
+        self.lw += self.rater.rate_lw * (self.grad_lw\
+                                         + 2 * label_lambda * self.lw)
+        self.lb += self.rater.rate_lb * (self.grad_lb\
+                                         + 2 * label_lambda * self.lb)
         
  
         

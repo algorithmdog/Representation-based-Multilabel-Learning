@@ -20,9 +20,11 @@ def active(A, active_type="sgmoid", idx = None):
     elif "sgmoid" == active_type:
         A = 1 / ( 1 + 1/np.exp(A) );
     elif "tanh" == active_type:
-        ex  = np.exp(A);
-        enx = np.exp(-A);
-        A   = (ex - enx) / (ex + enx);
+        m,n = A.shape
+        #ex  = np.exp(A);
+        #enx = np.exp(-A);
+        #A   = (ex - enx) / (ex + enx);
+        A = np.tanh(A)
     elif "rel" == active_type:
         A[ A < 0 ] = 0;
     else:
