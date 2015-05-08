@@ -21,10 +21,6 @@ def active(A, active_type="sgmoid", idx = None):
         A = 1 / ( 1 + 1/np.exp(A) );
     elif "tanh" == active_type:
         m,n = A.shape
-        for i in xrange(m):
-            for j in xrange(n):
-                if A[i,j] > 500:
-                    print i,j,A[i,j]
         #ex  = np.exp(A);
         #enx = np.exp(-A);
         #A   = (ex - enx) / (ex + enx);

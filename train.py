@@ -88,8 +88,8 @@ def train_mem(train_file, parameters, sample = None):
     train_reader = ArffReader(train_file)
     x,y = train_reader.full_read_sparse()
     num, _ = y.shape
-    if None == sample: idx_y = sp.csr_matrix(np.ones(y.shape))
-    else: idx_y = sp.csr_matrix(sampe.sample(y))
+    #if None == sample: idx_y = sp.csr_matrix(np.ones(y.shape))
+    #else: idx_y = sp.csr_matrix(sample.sample(y))
 
     logger.info("Training data loading done")
     for iter1 in xrange(niter):
@@ -103,7 +103,7 @@ def train_mem(train_file, parameters, sample = None):
             batch_y = y[start:end, :] 
             #batch_i = idx_y[start:end,:]
             if None == sample: batch_i = sp.lil_matrix(np.ones(batch_y.shape))
-            else: batch_i = sampe.sample(batch_y)
+            else: batch_i = sample.sample(batch_y)
             model.update(batch_x, batch_y, batch_i)      
 
             start += batch;
