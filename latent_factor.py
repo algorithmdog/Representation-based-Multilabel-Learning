@@ -9,6 +9,7 @@ sys.path.append(path + "/../Python_Utils")
 
 from active       import *
 from Matrix_Utils import *
+from threshold    import *
 import numpy as np
 import scipy.sparse as sp
 import util
@@ -36,7 +37,6 @@ class LearnRate:
         self.rate_lb  = np.array([ learnrate for j in xrange(model.num_label) ])
         self.rate_lw  = np.array([ [learnrate for j in xrange(model.num_label)] \
                                               for i in xrange(model.num_factor) ] )
-        
     def compute_rate(self, model):
         nocommand = 0
     def update_before_paramupdate(self, model):
@@ -124,8 +124,8 @@ class AdaDelta(AdaGrad):
             delta_b = self.rate_b[i] * model.grad_b[i]
             self.delta_w[i] = np.sqrt(self.delta_w[i] * self.delta_w[i] \
                                     + delta_w * delta_w)
-            self.ada_b[i] = np.sqrt(self.delta_b[i] * self.delta_b[i] \
-                                    + delta_b * delta_b[i])
+            self.delta_b[i] = np.sqrt(self.delta_b[i] * self.delta_b[i] \
+                                    + delta_b * delta_b)
 
         delta_lw = self.rate_lw * (model.grad_lw + 2 * model.label_lambda * model.lw)
         delta_lb = self.rate_lb * model.grad_lb
@@ -215,9 +215,12 @@ class Model:
 
         ##at the end, choose the learnrater
         #self.rater = LearnRate(self)
-        #self.rater = AdaGrad(self)
-        self.rater = AdaDelta(self)        
+        self.rater = AdaGrad(self)
+        #self.rater = AdaDelta(self)        
+    
         
+        ## the threshold
+        self.thrsel = ThresholdSel()    
 
     def check_dimension(self, x, y = None):
         m,n = x.shape

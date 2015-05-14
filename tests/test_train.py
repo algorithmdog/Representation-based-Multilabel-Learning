@@ -37,7 +37,7 @@ class TrainTester(unittest.TestCase):
         train.main(argv)
 
         
-        argv = ["train.py","-n","2","-b","2","-t","label_sample",\
+        argv = ["train.py","-n","2","-b","2","-t","negative_sample",\
                 "tests/test_train_data.arff",\
                 "tests/test_train_model.model"]
         train.main(argv)

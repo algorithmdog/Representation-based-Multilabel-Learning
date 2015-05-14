@@ -32,7 +32,7 @@ def predict(model, x):
     m,n = p.shape;
     for i in xrange(m):
         for j in xrange(n):
-            if p[i,j] > 0.5:
+            if p[i,j] > model.thrsel.threshold:
                 p[i,j] = 1;
             else:
                 p[i,j] = 0;

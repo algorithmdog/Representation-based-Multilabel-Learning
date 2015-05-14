@@ -83,7 +83,6 @@ def train_mem(train_file, parameters, sample = None):
     niter = parameters["niter"]
     
     logger = logging.getLogger(Logger.project_name)
-    logger.info("The latent_factor model starts")
 
     train_reader = ArffReader(train_file)
     x,y = train_reader.full_read_sparse()
@@ -110,7 +109,21 @@ def train_mem(train_file, parameters, sample = None):
             start += batch;
             end += batch;
 
-        logger.info("The %d-th iteration completes"%(iter1+1));
+        logger.info("The %d-th iteration completes"%(iter1+1)); 
+    logger.info("Training completes")
+    
+    #####tuning the threshold
+    start = 0
+    end = batch
+    while start < num:
+        if end > num: end = num
+        batch_x = x[start:end,:]
+        batch_y = y[start:end,:]
+        batch_p = model.ff(batch_x)
+        model.thrsel.update(batch_p, batch_y)
+        start += batch
+        end   += batch
+    logger.info("The threshold tuning completes") 
 
     return model
 
@@ -121,15 +134,12 @@ def train(train_file, parameters, sample = None):
     niter = parameters["niter"]
 
     logger = logging.getLogger(Logger.project_name)
-    logger.info("The latent_factor model starts")
-
 
     for iter1 in xrange(niter): 
         train_reader = ArffReader(train_file, batch)
 
         #idx_file specified
         if None != sample:
-
             x, y, has_next = train_reader.read_sparse()
             idx            = sample.sample(y)
             while has_next:
@@ -141,7 +151,6 @@ def train(train_file, parameters, sample = None):
         else:
             x, y, has_next = train_reader.read_sparse()
             idx            = sp.lil_matrix(np.ones(y.shape))
-
             while has_next:
                 model.update(x, y, idx)    
                 x, y, has_next = train_reader.read_sparse()
@@ -150,7 +159,14 @@ def train(train_file, parameters, sample = None):
         logger.info("The %d-th iteration completes"%(iter1+1)); 
         train_reader.close()
 
-    logger.info("The latent_factor model completes")
+    ##tuning threshold
+    train_reader = ArffReader(train_file, batch)
+    x, y, has_next = train_reader.read_sparse()
+    while has_next:
+        p = model.ff(x)
+        model.thrsel.update(p, y)
+        x, y, has_next = train_reader.read_sparse()
+        
 
     return model
 
