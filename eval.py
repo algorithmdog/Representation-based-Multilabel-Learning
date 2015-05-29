@@ -11,6 +11,7 @@ import logging, Logger
 import numpy as np
 import arffio
 import pickle
+import util
 
 def printUsages():
     print "Usage: eval.py result_file true_file"
@@ -21,8 +22,8 @@ def parseParameter(argv):
         exit(1)
 
     parameters = dict()
-    parameters["result_file"]  = argv[len(argv) - 2]
-    parameters["true_file"]    = argv[len(argv) - 1]
+    parameters["result_file"]  = argv[len(argv) - 1]
+    parameters["true_file"]    = argv[len(argv) - 2]
     return parameters
 
 
@@ -55,8 +56,8 @@ def instance_F(p,t):
         raise Exception("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj))
 
     m,n = p.shape
-    psum = np.sum(p,1)
-    tsum = np.sum(t,1)
+    psum = util.sparse_sum(p,1)
+    tsum = util.sparse_sum(t,1)
     F = 0.0
     for i in xrange(m):
         correct = 0
@@ -93,8 +94,8 @@ def label_F(p,t):
         raise Exception("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj))
 
     m,n = p.shape
-    psum = np.sum(p,0)
-    tsum = np.sum(t,0)
+    psum = util.sparse_sum(p,0)
+    tsum = util.sparse_sum(t,0)
     F = 0.0
 
     for j in xrange(n):
@@ -128,10 +129,10 @@ if __name__ == "__main__":
     result_file  = parameters["result_file"]
     true_file    = parameters["true_file"]
 
-    reader         = arffio.ArffReader(result_file, batch = 1000000000000)
-    _, p, has_next = reader.read()
-    reader         = arffio.ArffReader(true_file, batch = 1000000000000)
-    _, t, has_next = reader.read()
+    reader   = arffio.SvmReader(result_file, batch = 1000000000000)
+    _, p    = reader.full_read()
+    reader   = arffio.SvmReader(true_file, batch = 1000000000000)
+    _, t    = reader.full_read()
 
     ham = hamming(p, t)
     print "hamming loss:%f|"%ham,

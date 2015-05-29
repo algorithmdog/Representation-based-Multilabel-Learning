@@ -137,9 +137,7 @@ class AdaDelta(AdaGrad):
 class Model:
     def __init__(self,  parameters):
         self.parameters = dict()
-        self.parameters["num_feature"]   = 100
-        self.parameters["num_factor"]    = 500
-        self.parameters["num_label"]     = 1000
+        self.parameters["num_factor"]    = 50
         self.parameters["sizes"]         = []
         self.parameters["hidden_active"] = "tanh"
         self.parameters["output_active"] = "sgmoid"
@@ -217,8 +215,7 @@ class Model:
         #self.rater = LearnRate(self)
         self.rater = AdaGrad(self)
         #self.rater = AdaDelta(self)        
-    
-        
+            
         ## the threshold
         self.thrsel = ThresholdSel()    
 
@@ -297,37 +294,19 @@ class Model:
             else:
                 tmp = np.dot( tmp, self.w[i] )
             tmp += np.tile(self.b[i], [n,1] )
-           
-            check_large_value_in_hidden=''' 
-            m1,n1 = tmp.shape
-            flag = False
-            for ii in xrange(m1):
-                for jj in xrange(n1):
-                    if tmp[ii,jj] > 500:
-                        print ii,jj,tmp[ii,jj]
-                        flag = True
-            if True == flag:
-                print self.w[i]  
-                m1,n1 = self.w[i].shape              
-                for ii in xrange(m1):
-                    for jj in xrange(n1):
-                        if self.w[i][ii,jj] > 1:
-                            print ii,jj,self.w[i][ii,jj]
-                print self.b[i]
-            '''        
-
             tmp  = active( tmp, self.parameters["hidden_active"] )
             hidden_output.append(tmp)
         ins_factor = tmp
 
-        output  = np.zeros(y.shape)
-        m,n     = output.shape
+        #output  = sp.lil_matrix(idx.shape)
+        output = np.zeros(idx.shape) 
         xy = idx.nonzero()
         for k in xrange(len(xy[0])):
             i = xy[0][k]
             j = xy[1][k]
             output[i,j]  = np.dot( ins_factor[i:i+1, :], self.lw[:, j:j+1])
             output[i,j] += self.lb[j]
+        #output  = sp.csr_matrix(output)
         output  = active( output, self.parameters["output_active"] )         
 
         #---------------------------------------------------
@@ -338,9 +317,9 @@ class Model:
                        + "_" \
                        + self.parameters["loss"]
         output_grad  = grad( output, y, grad_type )
-
-        
+ 
         ## compute grad of label_factor and label_bias
+        m,n = idx.shape
         self.grad_lw = np.zeros(self.grad_lw.shape)
         self.grad_lb = np.zeros(self.grad_lb.shape)
         xy = idx.nonzero()
@@ -350,10 +329,9 @@ class Model:
                 self.grad_lw[:,j:j+1] += output_grad[i,j] \
                                          * np.transpose(ins_factor[i:i+1,:])
                 self.grad_lb[j]       += output_grad[i,j]
-        for j in xrange(n):
-            self.grad_lw[:, j:j+1] /= num_rates #sum_up_to_down[j]
-            self.grad_lb[j]        /= num_rates #sum_up_to_down[j]
-        
+        self.grad_lw /= num_rates
+        self.grad_lb /= num_rates       
+ 
 
         ## compute grad of instance factor
         ins_factor_grad     = np.zeros(ins_factor.shape)

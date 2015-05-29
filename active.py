@@ -6,8 +6,10 @@ path      = os.path.split(os.path.realpath(__file__))[0];
 sys.path.append(path + "/utils/Python_Utils");
 sys.path.append(path + "/../utils/Python_Utils");
 
-import numpy as np;
-import logging,Logger;
+import math
+import numpy as np
+import scipy.sparse as sp
+import logging,Logger
 
 #active function list
 #1. linear ( not active )
@@ -18,15 +20,26 @@ def active(A, active_type="sgmoid", idx = None):
     if "linear" == active_type:
         None;
     elif "sgmoid" == active_type:
-        A = 1 / ( 1 + 1/np.exp(A) );
+        if type(A) == type(sp.csr_matrix([[0]])):
+            xy = A.nonzero()
+            for k in xrange(len(xy[0])):
+                i = xy[0][k]
+                j = xy[1][k]
+                A[i,j] = 1 / (1 + 1/math.exp(A[i,j]))
+        else:
+            A = 1 / ( 1 + 1/np.exp(A) );
+
     elif "tanh" == active_type:
-        m,n = A.shape
-        #ex  = np.exp(A);
-        #enx = np.exp(-A);
-        #A   = (ex - enx) / (ex + enx);
         A = np.tanh(A)
     elif "rel" == active_type:
-        A[ A < 0 ] = 0;
+        if type(A) == type(sp.csr_matrix([[0]])):
+            xy = A.nonzero()
+            for k in xrange(len(xy[0])):
+                i = xy[0][k]
+                j = xy[1][k]
+                if A[i,j] < 0:  A[i,j] = 0
+        else:
+            A[ A < 0 ] = 0;
     else:
         logger = Logger.getLogger(Logger.project_name);
         logger.error("Not recognized active function: %s"%active_type);

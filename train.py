@@ -25,7 +25,6 @@ def printUsages():
     print "   -b: batch, the number of instances in a batch (default 100)"
     print "   -n: num of iter, the number of iterations (default 20)"
     print "   -t: sample_type, the sample_type"
-    print "         full, full matrix"
     print "         instance_sample, instance orient sampling scheme"
     print "         label_sample, label orient sampling scheme"
     print "         correlation_sample, sampling scheme exploits label correlations"
@@ -42,7 +41,7 @@ def parseParameter(argv):
     parameters["ins_lambda"]   = 0.001
     parameters["label_lambda"] = 0.001
     parameters["sizes"]        = [] 
-    parameters["batch"]        = 100
+    parameters["batch"]        = 10
     parameters["niter"]        = 20
     parameters["sample_type"]  = "full"
     parameters["mem"]          = 1
@@ -77,20 +76,23 @@ def parseParameter(argv):
 
     return parameters
 
-def train_mem(train_file, parameters, sample = None):
-    model = Model(parameters)
-    batch = parameters["batch"]
-    niter = parameters["niter"]
-    
+def train_mem(train_file, parameters):
+    model  = Model(parameters)
+    batch  = parameters["batch"]
+    niter  = parameters["niter"]
+    sample = sampler.get_sample(parameters)   
+
     logger = logging.getLogger(Logger.project_name)
 
-    train_reader = ArffReader(train_file)
-    x,y = train_reader.full_read_sparse()
+    train_reader = SvmReader(train_file)
+    x, y = train_reader.full_read()
     num, _ = y.shape
     #if None == sample: idx_y = sp.csr_matrix(np.ones(y.shape))
     #else: idx_y = sp.csr_matrix(sample.sample(y))
     logger.info("Training data loading done")
 
+    sample.update(y)
+    logger.info("Sampling initializaation done")
 
     for iter1 in xrange(niter):
         start = 0
@@ -101,16 +103,13 @@ def train_mem(train_file, parameters, sample = None):
 
             batch_x = x[start:end, :]
             batch_y = y[start:end, :] 
-            #batch_i = idx_y[start:end,:]
-            if None == sample: batch_i = sp.lil_matrix(np.ones(batch_y.shape))
-            else: batch_i = sample.sample(batch_y)
+            batch_i = sample.sample(batch_y)
             model.update(batch_x, batch_y, batch_i)      
 
             start += batch;
             end += batch;
 
         logger.info("The %d-th iteration completes"%(iter1+1)); 
-    logger.info("Training completes")
     
     #####tuning the threshold
     start = 0
@@ -128,44 +127,41 @@ def train_mem(train_file, parameters, sample = None):
     return model
 
 
-def train(train_file, parameters, sample = None):
-    model = Model(parameters)
-    batch = parameters["batch"]
-    niter = parameters["niter"]
-
+def train(train_file, parameters):
+    model  = Model(parameters)
+    batch  = parameters["batch"]
+    niter  = parameters["niter"]
+    sample = sampler.get_sample(parameters)
     logger = logging.getLogger(Logger.project_name)
 
+
+    ##initilization the sampler
+    train_reader   = SvmReader(train_file, batch)
+    has_next       = True
+    while has_next:
+        x,y,has_next = train_reader.read()
+        sample.update(y)
+    
+    ##weight updates
     for iter1 in xrange(niter): 
-        train_reader = ArffReader(train_file, batch)
-
-        #idx_file specified
-        if None != sample:
-            x, y, has_next = train_reader.read_sparse()
+        train_reader = SvmReader(train_file, batch)
+    
+        has_next = True
+        while has_next:
+            x, y, has_next = train_reader.read()
             idx            = sample.sample(y)
-            while has_next:
-                model.update(x, y, idx)
-                x, y, has_next = train_reader.read_sparse()
-                idx            = sample.sample(y)
-
-        #idx_file not specified, full
-        else:
-            x, y, has_next = train_reader.read_sparse()
-            idx            = sp.lil_matrix(np.ones(y.shape))
-            while has_next:
-                model.update(x, y, idx)    
-                x, y, has_next = train_reader.read_sparse()
-                idx = sp.lil_matrix(np.ones(y.shape))   
+            model.update(x, y, idx)
 
         logger.info("The %d-th iteration completes"%(iter1+1)); 
         train_reader.close()
 
     ##tuning threshold
-    train_reader = ArffReader(train_file, batch)
-    x, y, has_next = train_reader.read_sparse()
+    train_reader = SvmReader(train_file, batch)
+    x, y, has_next = train_reader.read()
     while has_next:
         p = model.ff(x)
         model.thrsel.update(p, y)
-        x, y, has_next = train_reader.read_sparse()
+        x, y, has_next = train_reader.read()
         
 
     return model
@@ -180,18 +176,16 @@ def main(argv):
     mem         = parameters["mem"]
 
     # read a instance to know the number of features and labels
-    train_reader = ArffReader(train_file, 1)
+    train_reader = SvmReader(train_file, 1)
     x, y, has_next = train_reader.read()
-    parameters["num_feature"] = len(x[0])
-    parameters["num_label"]   = len(y[0])
+    parameters["num_feature"] = x.shape[1]
+    parameters["num_label"]   = y.shape[1]
     train_reader.close()
 
-    #train   
-    sample = sampler.get_sample(parameters);
     if 1 == mem:
-        model = train_mem(train_file, parameters, sample) 
+        model = train_mem(train_file, parameters) 
     else:
-        model = train(train_file, parameters, sample)    
+        model = train(train_file, parameters)    
 
     #write the model
     s = pickle.dumps(model)

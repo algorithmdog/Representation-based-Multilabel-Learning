@@ -1,4 +1,5 @@
 #!/bin/bash
-bash tool/runonedata.sh enron
-bash tool/runonedata.sh delicious
-bash tool/runonedata.sh eurlex_desc
+rm result/*
+bash tool/runonedata.sh enron &
+bash tool/runonedata.sh delicious &
+bash tool/runonedata.sh eurlex_desc &

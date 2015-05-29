@@ -66,7 +66,7 @@ class CorrelationSampler(Sampler):
 
 class InstanceSampler(Sampler):
     def __init__(self, parameters):
-        self.ratio = 5
+        self.ratio = 10
         if "sample_ratio" in parameters:
             self.ratio = parameters["sample_ratio"]
 
@@ -77,17 +77,14 @@ class InstanceSampler(Sampler):
         #num = np.sum(sample,1)
         num = sparse_sum(sample,1)
         for i in xrange(len(num)):
-            #num[i] = 5 * int(num[i])
-            num[i] =  self.ratio * int(num[i])
+            num[i] = self.ratio * int(num[i])
+            #num[i] =  max(self.ratio * int(num[i]), int(n * 0.1))
 
         for i in xrange(m):
             for j in xrange(min(num[i], int(n/2))):
 
                 idx = int(random.random() * n)
                 if n == idx: idx = n - 1
-                while 1 == sample[i, idx]:
-                    idx = int(random.random() * n)
-                    if n == idx: idx = n - 1
                 sample[i, idx] = 1
                      
         return sample
@@ -101,6 +98,7 @@ class NegativeSampler(Sampler):
         self.ratio = 5
         if "sample_ratio" in parameters:
             self.ratio = parameters["sample_ratio"]
+
     def update(self, y):
         m,n = y.shape
         if self.distribution is None:
@@ -123,26 +121,33 @@ class NegativeSampler(Sampler):
         
         sample = sp.lil_matrix(y)
         m,n = sample.shape
-        num = sparse_sum(sample, 0)
+        num = sparse_sum(sample, 1)
         for i in xrange(len(num)):
             num[i] = self.ratio * int(num[i])
 
-        for j in xrange(n):
-            samplenum = min(num[j], m - num[j])
+        for i in xrange(m):
+            samplenum = min(num[i], n - num[i])
             
-            if samplenum == m - num[j]:
-                for i in xrange(m):
+            if samplenum == n - num[i]:
+                for j in xrange(n):
                     sample[i,j] = 1
             else:
+                roulette = '''
                 for i in xrange(samplenum):
                     idx = Roulette.roulette_pick(self.distribution)
                     if n == idx: idx = n - 1
-                    while 1 == sample[idx, j]:
+                    while 1 == sample[i, idx]:
                         idx = Roulette.roulette_pick(self.distribution)
                         if n == idx: idx = n - 1
 
-                    sample[idx, j] = 1
-    
+                    sample[i, idx] = 1
+                '''
+                for j in xrange(n):
+                    r = random.random()
+                    if r < ((num[i] /self.ratio) * (self.ratio +1)):
+                        sample[i,j] = 1 
+   
+
         return sample
 
 
