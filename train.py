@@ -28,7 +28,7 @@ def printUsages():
     print "         instance_sample, instance orient sampling scheme"
     print "         label_sample, label orient sampling scheme"
     print "         correlation_sample, sampling scheme exploits label correlations"
-
+    print "   -num_factor: the number of inner factors"
 
 def parseParameter(argv):
     if len(argv) < 3: #at least 4 paramters: train.py train_file model_file
@@ -68,7 +68,11 @@ def parseParameter(argv):
         elif "-t" == argv[i]:
             parameters["sample_type"] = argv[i+1]
         elif "-m" == argv[i]:
-            parameters["mem"]  = int(argv[i+1])
+            parameters["mem"] = int(argv[i+1])
+        elif "-sample_ratio" == argv[i]:
+            parameters["sample_ratio"] = int(argv[i+1])
+        elif "-num_factor" == argv[i]:
+            parameters["num_factor"] = int(argv[i+1])
         else:
             printUsages()
             exit(1)
@@ -81,8 +85,8 @@ def train_mem(train_file, parameters):
     batch  = parameters["batch"]
     niter  = parameters["niter"]
     sample = sampler.get_sample(parameters)   
-
     logger = logging.getLogger(Logger.project_name)
+    logger.info("Model initialization done")
 
     train_reader = SvmReader(train_file)
     x, y = train_reader.full_read()
@@ -92,7 +96,7 @@ def train_mem(train_file, parameters):
     logger.info("Training data loading done")
 
     sample.update(y)
-    logger.info("Sampling initializaation done")
+    logger.info("Sampling initialization done")
 
     for iter1 in xrange(niter):
         start = 0

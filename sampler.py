@@ -66,9 +66,10 @@ class CorrelationSampler(Sampler):
 
 class InstanceSampler(Sampler):
     def __init__(self, parameters):
-        self.ratio = 10
+        self.ratio = 1
         if "sample_ratio" in parameters:
             self.ratio = parameters["sample_ratio"]
+        print "self.ratio",self.ratio
 
     def sample(self, y):
         #sample = np.int_(y)  
@@ -82,7 +83,6 @@ class InstanceSampler(Sampler):
 
         for i in xrange(m):
             for j in xrange(min(num[i], int(n/2))):
-
                 idx = int(random.random() * n)
                 if n == idx: idx = n - 1
                 sample[i, idx] = 1

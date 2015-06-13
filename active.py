@@ -41,7 +41,7 @@ def active(A, active_type="sgmoid", idx = None):
         else:
             A[ A < 0 ] = 0;
     else:
-        logger = Logger.getLogger(Logger.project_name);
+        logger = logging.getLogger(Logger.project_name)
         logger.error("Not recognized active function: %s"%active_type);
         raise Exception("Not recognized active function: %s"%active_type);
     return A;

@@ -1,5 +1,5 @@
 #!/bin/bash
 rm result/*
-bash tool/runonedata.sh enron &
-bash tool/runonedata.sh delicious &
-bash tool/runonedata.sh eurlex_desc &
+bash tool/runonedata.sh enron 25 &
+bash tool/runonedata.sh delicious 200  &
+bash tool/runonedata.sh eurlex_desc 600 &

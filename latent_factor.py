@@ -26,17 +26,23 @@ class LearnRate:
         self.rate_b = []
         self.rate_w = []
         for idx in xrange(len(model.num)-1):
-            rate_w = [ [learnrate for j in xrange(model.num[idx+1])] \
-                                  for i in xrange(model.num[idx]) ]
-            rate_b = [ learnrate for j in xrange(model.num[idx+1]) ]
-            self.rate_w.append(np.array(rate_w))
-            self.rate_b.append(np.array(rate_b))
-
+            #rate_w = [ [learnrate for j in xrange(model.num[idx+1])] \
+            #                      for i in xrange(model.num[idx]) ]
+            #rate_b = [ learnrate for j in xrange(model.num[idx+1]) ]
+            #self.rate_w.append(np.array(rate_w))
+            #self.rate_b.append(np.array(rate_b))
+            rate_w = np.zeros((model.num[idx],model.num[idx+1])) + learnrate
+            rate_b = np.zeros((model.num[idx],model.num[idx+1])) + learnrate
+            self.rate_w.append(rate_w)
+            self.rate_b.append(rate_b)
 
         ## the lw and lb for labels
-        self.rate_lb  = np.array([ learnrate for j in xrange(model.num_label) ])
-        self.rate_lw  = np.array([ [learnrate for j in xrange(model.num_label)] \
-                                              for i in xrange(model.num_factor) ] )
+        #self.rate_lb  = np.array([ learnrate for j in xrange(model.num_label) ])
+        #self.rate_lw  = np.array([ [learnrate for j in xrange(model.num_label)] \
+        #                                      for i in xrange(model.num_factor) ] )
+        self.rate_lb = np.zeros((model.num_label)) + learnrate
+        self.rate_lw = np.zeros((model.num_factor,model.num_label)) + learnrate
+    
     def compute_rate(self, model):
         nocommand = 0
     def update_before_paramupdate(self, model):
@@ -55,17 +61,22 @@ class AdaGrad(LearnRate):
         self.ada_b = []
         self.ada_w = []
         for idx in xrange(len(model.num)-1):
-            ada_w = [ [ 1 for j in xrange(model.num[idx+1])] \
-                          for i in xrange(model.num[idx]) ]
-            ada_b = [ 1 for j in xrange(model.num[idx+1]) ]
-            self.ada_w.append(np.array(ada_w))
-            self.ada_b.append(np.array(ada_b))
-
+            #ada_w = [ [ 1 for j in xrange(model.num[idx+1])] \
+            #              for i in xrange(model.num[idx]) ]
+            #ada_b = [ 1 for j in xrange(model.num[idx+1]) ]
+            #self.ada_w.append(np.array(ada_w))
+            #self.ada_b.append(np.array(ada_b))
+            ada_w = np.ones((model.num[idx],model.num[idx+1]))
+            ada_b = np.ones((model.num[idx+1]))
+            self.ada_w.append(ada_w)
+            self.ada_b.append(ada_b)
 
         ## the lw and lb for labels
-        self.ada_lb       = np.array([ 1 for j in xrange(model.num_label) ])
-        self.ada_lw       = np.array([ [ 1 for j in xrange(model.num_label)] \
-                                           for i in xrange(model.num_factor) ] )
+        #self.ada_lb       = np.array([ 1 for j in xrange(model.num_label) ])
+        #self.ada_lw       = np.array([ [ 1 for j in xrange(model.num_label)] \
+        #                                   for i in xrange(model.num_factor) ] )
+        self.ada_lb = np.ones((model.num_label))
+        self.ada_lw = np.ones((model.num_factor, model.num_label));
 
     def update_before_paramupdate(self, model):
         #update the rms
@@ -99,18 +110,24 @@ class AdaDelta(AdaGrad):
         self.delta_b = []
         self.delta_w = []
         for idx in xrange(len(model.num)-1):
-            delta_w = [ [ initial_rate for j in xrange(model.num[idx+1])] \
-                                       for i in xrange(model.num[idx]) ]
-            delta_b = [ initial_rate for j in xrange(model.num[idx+1]) ]
-            self.delta_w.append(np.array(delta_w))
-            self.delta_b.append(np.array(delta_b))
+            #delta_w = [ [ initial_rate for j in xrange(model.num[idx+1])] \
+            #                           for i in xrange(model.num[idx]) ]
+            #delta_b = [ initial_rate for j in xrange(model.num[idx+1]) ]
+            #self.delta_w.append(np.array(delta_w))
+            #self.delta_b.append(np.array(delta_b))
 
+            delta_w = np.zeros((model.num[idx],model.num[idx+1])) + initial_rate
+            delta_b = np.zeros((model.num[idx],model.num[idx+1])) + initial_rate
+            self.delta_w.append(delta_w)
+            self.delta_b.append(delta_b)
 
         ## the lw and lb for labels
-        self.delta_lb = np.array([ initial_rate for j in xrange(model.num_label) ])
-        self.delta_lw = np.array([ [initial_rate for j in xrange(model.num_label)] \
-                                                 for i in xrange(model.num_factor) ] )
-
+        #self.delta_lb = np.array([ initial_rate for j in xrange(model.num_label) ])
+        #self.delta_lw = np.array([ [initial_rate for j in xrange(model.num_label)] \
+        #                                         for i in xrange(model.num_factor) ] )
+        self.delta_lb = np.zeros(model.num_label) + initial_rate
+        self.delta_lw = np.zeros((model.num_factor,model.num_label)) + initial_rate
+        
     def compute_rate(self, model):
         for i in xrange(len(model.grad_w)):
             self.rate_w[i] = self.delta_w[i] / self.ada_w[i]
@@ -137,7 +154,7 @@ class AdaDelta(AdaGrad):
 class Model:
     def __init__(self,  parameters):
         self.parameters = dict()
-        self.parameters["num_factor"]    = 50
+        self.parameters["num_factor"]    = 300
         self.parameters["sizes"]         = []
         self.parameters["hidden_active"] = "tanh"
         self.parameters["output_active"] = "sgmoid"
@@ -190,23 +207,33 @@ class Model:
             fan_in  = self.num[idx]
             fan_out = self.num[idx + 1]
             r = math.sqrt(6.0 /(fan_in+fan_out) )
-            w = [ [random.random() * 2 * r - r for j in xrange(self.num[idx+1])] \
-                                               for i in xrange(self.num[idx]) ]
+            #w = [ [random.random() * 2 * r - r for j in xrange(self.num[idx+1])] \
+            #                                   for i in xrange(self.num[idx]) ]
             
-            b = [  random.random() * 2 * r - r for j in xrange(self.num[idx+1]) ]
-            self.w.append(np.array(w))
-            self.b.append(np.array(b))
-            self.grad_w.append(np.array(w))
-            self.grad_b.append(np.array(b))
-      
+            #b = [  random.random() * 2 * r - r for j in xrange(self.num[idx+1]) ]
+            
+            #self.w.append(np.array(w))
+            #self.b.append(np.array(b))
+            #self.grad_w.append(np.array(w))
+            #self.grad_b.append(np.array(b))
+            w = 2 * r * np.random.random((self.num[idx],self.num[idx+1])) - r;
+            b = 2 * r * np.random.random(self.num[idx+1]) - r;  
+            self.w.append(w)
+            self.b.append(b)
+
+            self.grad_w.append(np.zeros((self.num[idx],self.num[idx+1])))
+            self.grad_b.append(np.zeros(self.num[idx+1]))   
+
  
         ## the lw and lb for labels
         r = math.sqrt(6.0 / (self.num_label + self.num_factor) )
-        self.lb       = np.array([ random.random() * 2 * r - r \
-                                   for j in xrange(self.num_label) ]) 
-        self.lw       = np.array([ [ random.random() * 2 * r -r \
-                                   for j in xrange(self.num_label)] \
-                                   for i in xrange(self.num_factor) ] )
+        #self.lb       = np.array([ random.random() * 2 * r - r \
+        #                           for j in xrange(self.num_label) ]) 
+        self.lb       = 2 * r * np.random.random(self.num_label) -r
+        #self.lw       = np.array([ [ random.random() * 2 * r -r \
+        #                           for j in xrange(self.num_label)] \
+        #                           for i in xrange(self.num_factor) ] )
+        self.lw       = 2 * r * np.random.random((self.num_factor, self.num_label)) -r
         self.grad_lb  = np.copy(self.lb)
         self.grad_lw  = np.copy(self.lw)
 
@@ -312,7 +339,12 @@ class Model:
         #---------------------------------------------------
         #compute the grad
         #---------------------------------------------------
-        num_rates,_ = idx.shape
+        code = '''sum_up_to_down    = util.sparse_sum(idx,0)
+        sum_left_to_right = util.sparse_sum(idx,1)
+        num_rates = 0
+        for i in xrange(len(sum_up_to_down)):
+            num_rates += sum_up_to_down[i]
+        '''
         grad_type    = self.parameters["output_active"] \
                        + "_" \
                        + self.parameters["loss"]
@@ -320,6 +352,7 @@ class Model:
  
         ## compute grad of label_factor and label_bias
         m,n = idx.shape
+        num_rates = m
         self.grad_lw = np.zeros(self.grad_lw.shape)
         self.grad_lb = np.zeros(self.grad_lb.shape)
         xy = idx.nonzero()
@@ -330,8 +363,14 @@ class Model:
                                          * np.transpose(ins_factor[i:i+1,:])
                 self.grad_lb[j]       += output_grad[i,j]
         self.grad_lw /= num_rates
-        self.grad_lb /= num_rates       
- 
+        self.grad_lb /= num_rates
+        
+        code = '''
+        for i in xrange(n):
+            if sum_up_to_down[i] != 0:
+                self.grad_lw[:,i:i+1] /= sum_up_to_down[i]
+                self.grad_lb[i]       /= sum_up_to_down[i]   
+        '''
 
         ## compute grad of instance factor
         ins_factor_grad     = np.zeros(ins_factor.shape)
