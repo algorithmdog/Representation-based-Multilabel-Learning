@@ -32,11 +32,25 @@ class SampleTester(unittest.TestCase):
         with self.assertRaises(Exception):
             sum2 = sparse_sum(a,2)
 
+    def test_negative(self):
+        ns = NegativeSampler(dict())
+        a = sp.csr_matrix([[0,0,1],[1,0,0]])
+        ns.update(a)
+        ns.ratio = 1
+        sample =  ns.sample(a)
+
+        print sample.todense()
+
+        a='''expected = sp.csr_matrix([[1,0,1],[1,0,1]])
+        for e1,e2 in zip(sample.todense(), expected.todense()):
+            self.assertEquals(e1,e2)
+        '''
+
     def test_get_sample(self):
         params = dict()
         params["sample_type"] = "full"
         sample = get_sample(params)
-        self.assertEquals(sample, None)
+        self.assertTrue( isinstance(sample, FullSampler) )
 
         params["sample_type"] = "correlation_sample"
         sample = get_sample(params)
@@ -46,10 +60,11 @@ class SampleTester(unittest.TestCase):
         sample = get_sample(params)
         self.assertTrue(isinstance(sample, InstanceSampler))
 
-        params["sample_type"] = "label_sample"
-        params["num_label"] = 10
-        sample = get_sample( params)
-        self.assertTrue( isinstance(sample, LabelSampler) )
+
+        params["sample_type"] = "negative_sample"
+        params["ratio"]       = 5
+        sample = get_sample(params)
+        self.assertTrue( isinstance(sample, NegativeSampler) )
 
         with self.assertRaises(Exception):
             params["sample_type"] = "xxx" 

@@ -29,13 +29,15 @@ def parseParameter(argv):
 
 def predict(model, x):
     p  = model.ff(x);
+    
     m,n = p.shape;
     for i in xrange(m):
         for j in xrange(n):
-            if p[i,j] > 0.5:
+            if p[i,j] > model.thrsel.threshold:
                 p[i,j] = 1;
             else:
                 p[i,j] = 0;
+
     return p;
 
 
@@ -46,33 +48,25 @@ if __name__ == "__main__":
     model_file  = parameters["model_file"];
     result_file = parameters["result_file"];
 
-    reader           = arffio.ArffReader(test_file, batch = 1000000000000);
-    x, y, has_next   = reader.read();
-    
+    reader  = arffio.SvmReader(test_file, batch = 1000000000000);
+    x, _    = reader.full_read();
+
     #load model and predition
     f     = open(model_file, "r");
     s     = f.read();
     model = pickle.loads(s);
     p     = predict(model, x);
     
-
-    ##predctions to obj
-    obj         = copy.deepcopy(reader.nextobj);
-
-    obj["attributes"] = [];
-    for j in xrange(len(reader.nextobj["attributes"])):
-        if arffio.label_flag in reader.nextobj["attributes"][j][0]: 
-            obj["attributes"].append( reader.nextobj["attributes"][j] );
-    
-    obj["data"] = [ [0 for col in xrange(len(p[0]))] \
-                    for row in xrange(len(p))  ];      
-    for i in xrange(len(p)):
-        for j in xrange(len(p[0])):
-            obj["data"][i][j] = p[i][j];
+    ##predctions to sparse data
+    y = sp.csr_matrix(p)
+    x = np.zeros((p.shape[0],1))
+    for i in xrange(p.shape[0]):
+        x[i][0] = 1
+    x = sp.csr_matrix(x)
 
     #write
-    writer = arffio.ArffWriter(result_file);
-    writer.write(obj);
+    writer = arffio.SvmWriter(result_file, model.num_feature, model.num_label);
+    writer.write(x,y);
     writer.close();
      
         

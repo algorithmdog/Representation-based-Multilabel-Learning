@@ -10,12 +10,26 @@ from util   import *
 import logging, Logger
 import pickle
 import numpy as np
+import scipy.sparse as sp
 import random
 import math
+import Roulette
 random.seed(0)
 
 
-class CorrelationSampler:
+class Sampler:
+    def __init__(self, paramters):
+        nocode = 0
+    def update(self, y):
+        nocode = 0
+    def sample(self, y):
+        return sp.lil_matrix(y.shape)
+
+class FullSampler(Sampler):
+    def sample(self, y):
+        return sp.lil_matrix(y.shape)
+
+class CorrelationSampler(Sampler):
     def __init__(self, parameters):
         self.parameters = dict()
         self.parameters["num_label"]  = 1000
@@ -50,9 +64,12 @@ class CorrelationSampler:
     def sample(self, y):
         lili = 0        
 
-class InstanceSampler:
+class InstanceSampler(Sampler):
     def __init__(self, parameters):
-        no_execute = 0
+        self.ratio = 1
+        if "sample_ratio" in parameters:
+            self.ratio = parameters["sample_ratio"]
+        print "self.ratio",self.ratio
 
     def sample(self, y):
         #sample = np.int_(y)  
@@ -61,61 +78,78 @@ class InstanceSampler:
         #num = np.sum(sample,1)
         num = sparse_sum(sample,1)
         for i in xrange(len(num)):
-            num[i] =  3*int(num[i])
+            num[i] = self.ratio * int(num[i])
+            #num[i] =  max(self.ratio * int(num[i]), int(n * 0.1))
 
         for i in xrange(m):
             for j in xrange(min(num[i], int(n/2))):
-
                 idx = int(random.random() * n)
                 if n == idx: idx = n - 1
-                while 1 == sample[i, idx]:
-                    idx = int(random.random() * n)
-                    if n == idx: idx = n - 1
                 sample[i, idx] = 1
                      
         return sample
 
-class LabelSampler:
-    def __init__(self, params):
-        no_execute = 0
 
+
+class NegativeSampler(Sampler):
+    def __init__(self, parameters):
+        self.distribution = None
+        self.num = 0
+        self.ratio = 5
+        if "sample_ratio" in parameters:
+            self.ratio = parameters["sample_ratio"]
+
+    def update(self, y):
+        m,n = y.shape
+        if self.distribution is None:
+            self.distribution = np.array([0.0 for i in xrange(n)])
+            self.num          = 0
+
+        self.distribution  *= self.num
+
+        xy = y.nonzero()
+        for k in xrange(len(xy[0])):
+            i = xy[0][k]
+            j = xy[1][k]
+            self.distribution[j] += 1
+        self.num += len(xy[0])
+
+        self.distribution  /= self.num
+
+    
     def sample(self, y):
-        '''
-        if False == self.has_normalized:
-            self.num_labels = self.num_ins - self.num_labels
-            total = np.sum(self.num_labels) * 1.0
-            self.num_labels /= total
-            self.has_normalized = True
-
-        sample = np.int_(y)
-        m,n = sample.shape
-        num = np.sum(sample, 1)
-        return sample'''
+        
         sample = sp.lil_matrix(y)
         m,n = sample.shape
-        #num = np.sum(sample,0)
-        num = sparse_sum(sample, 0)
+        num = sparse_sum(sample, 1)
         for i in xrange(len(num)):
-            num[i] = int(num[i])
+            num[i] = self.ratio * int(num[i])
 
-        for j in xrange(n):
-            samplenum = min(num[j], m - num[j])
-            #
-            if samplenum == m - num[j]:
-                for i in xrange(m):
+        for i in xrange(m):
+            samplenum = min(num[i], n - num[i])
+            
+            if samplenum == n - num[i]:
+                for j in xrange(n):
                     sample[i,j] = 1
-            # 
-            else:             
+            else:
+                roulette = '''
                 for i in xrange(samplenum):
-                    idx = int(random.random() * m)
-                    if n == idx: idx = m - 1
-                    while 1 == sample[idx, j]:
-                        idx = int(random.random() * m)
-                        if n == idx: idx = m - 1
+                    idx = Roulette.roulette_pick(self.distribution)
+                    if n == idx: idx = n - 1
+                    while 1 == sample[i, idx]:
+                        idx = Roulette.roulette_pick(self.distribution)
+                        if n == idx: idx = n - 1
 
-                    sample[idx, j] = 1
+                    sample[i, idx] = 1
+                '''
+                for j in xrange(n):
+                    r = random.random()
+                    if r < ((num[i] /self.ratio) * (self.ratio +1)):
+                        sample[i,j] = 1 
+   
 
         return sample
+
 
 
 def get_sample(parameters):
@@ -130,16 +164,16 @@ def get_sample(parameters):
     sample_type = parameters["sample_type"]
     
     if "full" == sample_type:
-        return None
+        return FullSampler(parameters)
 
     elif "instance_sample" == sample_type:
         return InstanceSampler(parameters)
 
-    elif "label_sample" == sample_type:
-        return LabelSampler(parameters)
-
     elif "correlation_sample" == sample_type:
         return CorrelationSampler(parameters)
+
+    elif "negative_sample" == sample_type:
+        return NegativeSampler(parameters)
 
     else:
         logger = logging.getLogger(Logger.project_name)

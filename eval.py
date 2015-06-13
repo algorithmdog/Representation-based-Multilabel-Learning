@@ -11,6 +11,7 @@ import logging, Logger
 import numpy as np
 import arffio
 import pickle
+import util
 
 def printUsages():
     print "Usage: eval.py result_file true_file"
@@ -21,8 +22,8 @@ def parseParameter(argv):
         exit(1)
 
     parameters = dict()
-    parameters["result_file"]  = argv[len(argv) - 2]
-    parameters["true_file"]    = argv[len(argv) - 1]
+    parameters["result_file"]  = argv[len(argv) - 1]
+    parameters["true_file"]    = argv[len(argv) - 2]
     return parameters
 
 
@@ -33,17 +34,30 @@ def hamming(p, t):
         logger = logging.getLogger(Logger.project_name)
         logger.error("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj))
         raise Exception("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj))
+    m,n   = p.shape
+    total = m * n
+
+
+    nump = 0
+    pxys = dict()
+    xy  = p.nonzero()
+    for i in xrange(len(xy[0])):
+        x = xy[0][i]
+        y = xy[1][i]
+        pxys["%d_%d"%(x,y)] = 1
+        nump += 1
 
     correct = 0
-    total   = 0
-    m,n = p.shape
-    for i in xrange(m):
-        for j in xrange(n):
-            total   += 1
-            if eq(p[i,j], t[i,j]):
-                correct += 1
-     
-    return 1 - correct * 1.0 / total
+    numt    = 0
+    xy      = t.nonzero()
+    for i in xrange(len(xy[0])):
+        x = xy[0][i]
+        y = xy[1][i]
+        numt += 1
+        if "%d_%d"%(x,y) in pxys:
+            correct += 1    
+ 
+    return (numt + nump - 2 * correct) * 1.0 / total
 
 
 def instance_F(p,t):
@@ -55,32 +69,31 @@ def instance_F(p,t):
         raise Exception("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj))
 
     m,n = p.shape
-    psum = np.sum(p,1)
-    tsum = np.sum(t,1)
-    F = 0.0
-    for i in xrange(m):
-        correct = 0
-        for j in xrange(n):
-            if eq(p[i,j],1) and eq(t[i,j],1):
-                correct += 1
-            
-        pre = 0.0
-        if eq(psum[i],0):
-            pre = 0.0
-        else:   
-            pre = correct * 1.0 / psum[i]
-        
-        rec = 0.0
-        if eq(tsum[i],0):
-            rec =  0.0
-        else:
-            rec = correct * 1.0 / tsum[i]   
+    correct  = [0 for i in xrange(m)]
+    lenp     = [0 for i in xrange(m)]
+    lent     = [0 for i in xrange(m)]
 
-        if eq(pre,0) and eq(rec,0):
-            F += 0
-        else:
-            F += 2*pre*rec/(pre+rec)
-    
+    pxys = dict()
+    xy  = p.nonzero()
+    for i in xrange(len(xy[0])):
+        x = xy[0][i]
+        y = xy[1][i]
+        lenp[x] += 1
+        pxys["%d_%d"%(x,y)] = 1
+
+    xy      = t.nonzero()
+    for k in xrange(len(xy[0])):
+        x = xy[0][k]
+        y = xy[1][k]
+        lent[x] += 1
+        if "%d_%d"%(x,y) in pxys:
+            correct[x] += 1
+
+    F = 0
+    for i in xrange(m):
+        if lenp[i] !=0 or lent[i] != 0:
+            F += 2.0 * correct[i]/(lenp[i] + lent[i])   
+ 
     return F/m
 
 
@@ -93,32 +106,30 @@ def label_F(p,t):
         raise Exception("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj))
 
     m,n = p.shape
-    psum = np.sum(p,0)
-    tsum = np.sum(t,0)
-    F = 0.0
+    correct  = [0 for i in xrange(n)]
+    lenp     = [0 for i in xrange(n)]
+    lent     = [0 for i in xrange(n)]
+    
+    pxys = dict()
+    xy  = p.nonzero()
+    for k in xrange(len(xy[0])):
+        x = xy[0][k]
+        y = xy[1][k]
+        lenp[y] += 1
+        pxys["%d_%d"%(x,y)] = 1
 
+    xy      = t.nonzero()
+    for k in xrange(len(xy[0])):
+        x = xy[0][k]
+        y = xy[1][k]
+        lent[y] += 1
+        if "%d_%d"%(x,y) in pxys:
+            correct[y] += 1
+
+    F = 0
     for j in xrange(n):
-        correct = 0
-        for i in xrange(m):
-            if eq(p[i,j],1) and eq(t[i,j],1):
-                correct += 1
-
-        pre = 0.0
-        if eq(psum[j],0):
-            pre = 0.0
-        else:
-            pre = correct * 1.0 / psum[j]
-
-        rec = 0.0
-        if eq(tsum[j],0):
-            rec =  0.0
-        else:
-            rec = correct * 1.0 / tsum[j]
-
-        if eq(pre,0) and eq(rec,0):
-            F += 0
-        else:
-            F += 2*pre*rec/(pre+rec)
+        if lenp[j] !=0 or lent[j] != 0:
+            F += 2.0 * correct[j]/(lenp[j] + lent[j])
 
     return F/n
 
@@ -128,10 +139,10 @@ if __name__ == "__main__":
     result_file  = parameters["result_file"]
     true_file    = parameters["true_file"]
 
-    reader         = arffio.ArffReader(result_file, batch = 1000000000000)
-    _, p, has_next = reader.read()
-    reader         = arffio.ArffReader(true_file, batch = 1000000000000)
-    _, t, has_next = reader.read()
+    reader   = arffio.SvmReader(result_file, batch = 1000000000000)
+    _, p     = reader.full_read()
+    reader   = arffio.SvmReader(true_file, batch = 1000000000000)
+    _, t     = reader.full_read()
 
     ham = hamming(p, t)
     print "hamming loss:%f|"%ham,
