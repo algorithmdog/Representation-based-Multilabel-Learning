@@ -20,24 +20,16 @@ def active(A, active_type="sgmoid", idx = None):
     if "linear" == active_type:
         None;
     elif "sgmoid" == active_type:
-        if type(A) == type(sp.csr_matrix([[0]])):
-            xy = A.nonzero()
-            for k in xrange(len(xy[0])):
-                i = xy[0][k]
-                j = xy[1][k]
-                A[i,j] = 1 / (1 + 1/math.exp(A[i,j]))
+        if sp.isspmatrix(A):#type(A) == type(sp.csr_matrix([[0]])):
+            A.data = 1 / ( 1 + 1 / np.exp(A.data))
         else:
             A = 1 / ( 1 + 1/np.exp(A) );
 
     elif "tanh" == active_type:
         A = np.tanh(A)
     elif "rel" == active_type:
-        if type(A) == type(sp.csr_matrix([[0]])):
-            xy = A.nonzero()
-            for k in xrange(len(xy[0])):
-                i = xy[0][k]
-                j = xy[1][k]
-                if A[i,j] < 0:  A[i,j] = 0
+        if sp.issmatrix(A):
+            A.data[ A.data <0 ] = 0
         else:
             A[ A < 0 ] = 0;
     else:
@@ -45,6 +37,7 @@ def active(A, active_type="sgmoid", idx = None):
         logger.error("Not recognized active function: %s"%active_type);
         raise Exception("Not recognized active function: %s"%active_type);
     return A;
+
 
 
 #@loss_type: the loss function list
@@ -128,24 +121,29 @@ def loss(A, Y, loss_type = "negative_log_likelihood", idx = None):
 # 7. tanh
 # 8. rel
 #@parameters. 
-def grad(A, Y = None, type = " sgmoid_negative_log_likelihood "):
-    if ("sgmoid_negative_log_likelihood" == type or \
-        "linear_least_square"            == type or \
-        "linear_appro_l1_hinge"          == type or \
-        "linear_l2_hinge"                == type    \
+def grad(A, Y = None, grad_type = " sgmoid_negative_log_likelihood "):
+    if ("sgmoid_negative_log_likelihood" == grad_type or \
+        "linear_least_square"            == grad_type or \
+        "linear_appro_l1_hinge"          == grad_type or \
+        "linear_l2_hinge"                == grad_type    \
        ) and None == Y:   
             logger = logging.getLogger(Logger.project_name);
             logger.error("Y should not equals None when computing gradients"
-                         " of loss function %s"%type);
+                         " of loss function %s"%grad_type);
             raise Exception("Y should not equal None when computing gradients of loss"
-                            " function %s"%type);
+                            " function %s"%grad_type);
        
 
-    if "sgmoid_negative_log_likelihood" == type:
-        return A - Y;        
-    elif "linear_least_square" == type:
+    if "sgmoid_negative_log_likelihood" == grad_type:
+        if sp.isspmatrix(A):
+            R = sp.csr_matrix(A)
+            R.data =  A.data - np.asarray(Y[A.nonzero()])[0,:]
+            return R
+        else:
+            return A - Y;        
+    elif "linear_least_square" == grad_type:
         return 2*(A - Y);
-    elif "linear_appro_l1_hinge" == type:
+    elif "linear_appro_l1_hinge" == grad_type:
         Y = 2 * Y - 1;
         score = Y * A;
         grad = np.zeros(score.shape);
@@ -162,7 +160,7 @@ def grad(A, Y = None, type = " sgmoid_negative_log_likelihood "):
         grad[ flag ] = tmp[ flag ];    
     
         return grad; 
-    elif "linear_l2_hinge" == type:
+    elif "linear_l2_hinge" == grad_type:
         Y = 2 * Y - 1;
         score = Y * A;
         grad  = np.zeros(Y.shape);
@@ -170,22 +168,22 @@ def grad(A, Y = None, type = " sgmoid_negative_log_likelihood "):
         grad[ flag ] =  (-2 * Y * ( 1 - score))[flag];
         return grad;
 
-    elif "sgmoid" == type:
+    elif "sgmoid" == grad_type:
         return A * (1 - A)
 
-    elif "linear" == type:
+    elif "linear" == grad_type:
         return np.ones(A.shape);
 
-    elif "tanh" == type:
+    elif "tanh" == grad_type:
         return 1 - A * A;  
 
-    elif "rel" == type:
+    elif "rel" == grad_type:
         A[A <  0] = 0;
         A[A >  0] = 1;
         return A;
 
     else:
         logger = logging.getLogger(Logger.project_name);
-        logger.info("Not recognized grad target function: %s"%type);
-        raise Exception("Not recognized grad target function: %s"%type);
+        logger.info("Not recognized grad target function: %s"%grad_type);
+        raise Exception("Not recognized grad target function: %s"%grad_type);
 

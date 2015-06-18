@@ -32,7 +32,7 @@ class LearnRate:
             #self.rate_w.append(np.array(rate_w))
             #self.rate_b.append(np.array(rate_b))
             rate_w = np.zeros((model.num[idx],model.num[idx+1])) + learnrate
-            rate_b = np.zeros((model.num[idx],model.num[idx+1])) + learnrate
+            rate_b = np.zeros(model.num[idx+1]) + learnrate
             self.rate_w.append(rate_w)
             self.rate_b.append(rate_b)
 
@@ -40,8 +40,9 @@ class LearnRate:
         #self.rate_lb  = np.array([ learnrate for j in xrange(model.num_label) ])
         #self.rate_lw  = np.array([ [learnrate for j in xrange(model.num_label)] \
         #                                      for i in xrange(model.num_factor) ] )
-        self.rate_lb = np.zeros((model.num_label)) + learnrate
-        self.rate_lw = np.zeros((model.num_factor,model.num_label)) + learnrate
+        
+        self.rate_lb = np.zeros(model.num_label) + learnrate
+        self.rate_lw = np.zeros((model.num_factor, model.num_label)) + learnrate
     
     def compute_rate(self, model):
         nocommand = 0
@@ -80,25 +81,62 @@ class AdaGrad(LearnRate):
 
     def update_before_paramupdate(self, model):
         #update the rms
-        for i in xrange(len(model.grad_w)):
-            grad_w = model.grad_w[i] + 2 * model.ins_lambda * model.w[i]
-            grad_b = model.grad_b[i]
-            self.ada_w[i] = np.sqrt(self.ada_w[i] * self.ada_w[i] \
-                                    + grad_w * grad_w) 
-            self.ada_b[i] = np.sqrt(self.ada_b[i] * self.ada_b[i] \
-                                    + grad_b * grad_b)            
 
-        grad_lw = model.grad_lw + 2 * model.label_lambda * model.lw
+        #import cProfile, pstats, StringIO
+        #import time
+        #pr =  cProfile.Profile()
+        #pr.enable()
+        #time1 = time.time()
+        for i in xrange(len(model.grad_w)):
+            #t1,t2 = model.grad_w[i].shape
+            if sp.isspmatrix(model.grad_w[i]):
+                nonzero = model.grad_w[i].nonzero()
+                grad_w  = np.asarray(model.grad_w[i].data) + 2 * model.ins_lambda * model.w[i][nonzero]
+                self.ada_w[i][nonzero] = self.ada_w[i][nonzero] + grad_w * grad_w            
+            else:
+                grad_w = model.grad_w[i] + 2 * model.ins_lambda * model.w[i]
+                self.ada_w[i] = self.ada_w[i] + grad_w * grad_w
+            
+            grad_b = model.grad_b[i]
+            self.ada_b[i] = self.ada_b[i] + grad_b * grad_b            
+
+        
+        if sp.isspmatrix(model.grad_lw):
+            nonzero = model.grad_lw.nonzero()
+            grad_lw = np.asarray(model.grad_lw.data) + 2 * model.label_lambda * model.lw[nonzero]
+            self.ada_lw[nonzero] = self.ada_lw[nonzero] + grad_lw * grad_lw      
+        else:
+            grad_lw = model.grad_lw + 2 * model.label_lambda * model.lw
+            self.ada_lw = self.ada_lw + grad_lw * grad_lw
+        
         grad_lb = model.grad_lb
-        self.ada_lw = np.sqrt(self.ada_lw * self.ada_lw + grad_lw * grad_lw)
-        self.ada_lb = np.sqrt(self.ada_lb * self.ada_lb + grad_lb * grad_lb)  
+        self.ada_lb = self.ada_lb + grad_lb * grad_lb  
+
+        #pr.disable()
+        #time2 = time.time()
+        #s = StringIO.StringIO()
+        #sortby = 'cumulative'
+        #ps = pstats.Stats(pr, stream = s).sort_stats(sortby)
+        #ps.print_stats()
+        #print s.getvalue()
+        #print "time", time2 - time1 
+        ##print "\n\n"
 
     def compute_rate(self, model): 
         for i in xrange(len(model.grad_w)):
-            self.rate_w[i] = self.initial_rate / self.ada_w[i]            
-            self.rate_b[i] = self.initial_rate / self.ada_b[i]
-        self.rate_lw = self.initial_rate / self.ada_lw
-        self.rate_lb = self.initial_rate / self.ada_lb
+            if sp.isspmatrix(model.grad_w[i]):
+                nonzero = model.grad_w[i].nonzero()
+                self.rate_w[i][nonzero] = self.initial_rate / np.sqrt(self.ada_w[i][nonzero])
+            else:
+                self.rate_w[i] = self.initial_rate / np.sqrt(self.ada_w[i])            
+            self.rate_b[i] = self.initial_rate / np.sqrt(self.ada_b[i])
+
+        if sp.isspmatrix(model.grad_lw):
+            nonzero = model.grad_lw.nonzero()
+            self.rate_lw[nonzero] = self.initial_rate / np.sqrt(self.ada_lw[nonzero])
+        else:
+            self.rate_lw = self.initial_rate / np.sqrt(self.ada_lw)
+        self.rate_lb = self.initial_rate / np.sqrt(self.ada_lb)
 
 
 ################ AdaDelta ######################
@@ -138,14 +176,14 @@ class AdaDelta(AdaGrad):
     def update_after_paramupdate(self, model):
         for i in xrange(len(model.grad_w)):
             delta_w = self.rate_w[i] * (model.grad_w[i] + 2 * model.ins_lambda * model.w[i])
-            delta_b = self.rate_b[i] * model.grad_b[i]
+            delta_b = self.rate_b[i] * (model.grad_b[i] + 2 * model.ins_lambda * model.b[i])
             self.delta_w[i] = np.sqrt(self.delta_w[i] * self.delta_w[i] \
                                     + delta_w * delta_w)
             self.delta_b[i] = np.sqrt(self.delta_b[i] * self.delta_b[i] \
                                     + delta_b * delta_b)
 
         delta_lw = self.rate_lw * (model.grad_lw + 2 * model.label_lambda * model.lw)
-        delta_lb = self.rate_lb * model.grad_lb
+        delta_lb = self.rate_lb * (model.grad_lb + 2 * model.label_lambda * model.lb)
         self.delta_lw = np.sqrt(self.delta_lw * self.delta_lw + delta_lw * delta_lw)
         self.delta_lb = np.sqrt(self.delta_lb * self.delta_lb + delta_lb * delta_lb)        
 
@@ -272,12 +310,22 @@ class Model:
         #print y.todense()
         #print 'idx'
         #print idx.todense()
+        
+        import cProfile, pstats, StringIO
+        pr =  cProfile.Profile()
+        pr.enable()
         self.check_dimension(x, y )
         self.bp(x, y, idx)
         self.rater.update_before_paramupdate(self)
         self.rater.compute_rate(self)
         self.apply()
         self.rater.update_after_paramupdate(self)
+        pr.disable()
+        s = StringIO.StringIO()
+        sortby = 'cumulative'
+        ps = pstats.Stats(pr, stream = s).sort_stats(sortby)
+        ps.print_stats()
+        print "update",s.getvalue()
 
 
     def ff(self, x):
@@ -288,7 +336,7 @@ class Model:
         tmp       = x
 
         for i in xrange(n_layer):
-            if i == 0 and type(x) == type(sp.csr_matrix([[0]])):
+            if i == 0 and sp.isspmatrix(x):#type(x) == type(sp.csr_matrix([[0]])):
                 tmp = tmp * self.w[i]
             else:
                 tmp  = np.dot(tmp, self.w[i])
@@ -305,6 +353,11 @@ class Model:
 
 
     def bp(self, x, y, idx):
+
+        
+        #import cProfile, pstats, StringIO
+        #pr =  cProfile.Profile()
+        #pr.enable()
         self.check_dimension(x, y)
         #-------------------------------------------------------
         #ff for train 
@@ -316,7 +369,7 @@ class Model:
         hidden        = []
         tmp           = x
         for i in xrange( n_layer ):
-            if 0 == i and type(x) == type(sp.csr_matrix([[0]])):
+            if 0 == i and sp.isspmatrix(x):#type(x) == type(sp.csr_matrix([[0]])):
                 tmp = tmp * self.w[i]
             else:
                 tmp = np.dot( tmp, self.w[i] )
@@ -327,13 +380,21 @@ class Model:
 
         #output  = sp.lil_matrix(idx.shape)
         output = np.zeros(idx.shape) 
-        xy = idx.nonzero()
+        #output = np.dot(ins_factor, self.lw)
+        xy       = idx.nonzero()
+        data     = np.zeros(len(xy[0]))
+        id_of_v  = 0
         for k in xrange(len(xy[0])):
             i = xy[0][k]
             j = xy[1][k]
-            output[i,j]  = np.dot( ins_factor[i:i+1, :], self.lw[:, j:j+1])
-            output[i,j] += self.lb[j]
-        #output  = sp.csr_matrix(output)
+            output[i,j]      = np.dot( ins_factor[i:i+1, :], self.lw[:, j:j+1])
+            output[i,j]     += self.lb[j]
+            data[id_of_v]    = output[i,j]
+            id_of_v         += 1
+        mo,no = output.shape
+        if len(xy[0]) * 1.0 / (mo * no) < 0.001:
+#           output  = sp.csr_matrix(output)
+            output  = sp.csr_matrix((data,xy),output.shape)
         output  = active( output, self.parameters["output_active"] )         
 
         #---------------------------------------------------
@@ -349,22 +410,37 @@ class Model:
                        + "_" \
                        + self.parameters["loss"]
         output_grad  = grad( output, y, grad_type )
- 
+       
         ## compute grad of label_factor and label_bias
         m,n = idx.shape
         num_rates = m
+        
         self.grad_lw = np.zeros(self.grad_lw.shape)
         self.grad_lb = np.zeros(self.grad_lb.shape)
         xy = idx.nonzero()
-        for k in xrange(len(xy[0])):
+        if sp.isspmatrix(output_grad):
+            self.grad_lw = sp.csr_matrix(np.transpose(ins_factor)) * output_grad
+            self.grad_lb = util.sparse_sum(output_grad, 0 ) 
+            '''    for i,j,v in zip(xy[0], xy[1], output_grad.data):
+                self.grad_lw[:,j:j+1] += v * np.transpose(ins_factor[i:i+1,:])
+                self.grad_lb[j]       += v
+            '''
+        else:
+            for k in xrange(len(xy[0])):
                 i = xy[0][k]   
                 j = xy[1][k]
                 self.grad_lw[:,j:j+1] += output_grad[i,j] \
                                          * np.transpose(ins_factor[i:i+1,:])
                 self.grad_lb[j]       += output_grad[i,j]
         self.grad_lw /= num_rates
+        #self.grad_lw  = sp.csr_matrix(self.grad_lw)
         self.grad_lb /= num_rates
         
+        '''
+        self.grad_lw = np.transpose(ins_factor) * output_grad
+        #self.grad_lb = npi
+        '''
+
         code = '''
         for i in xrange(n):
             if sum_up_to_down[i] != 0:
@@ -375,17 +451,29 @@ class Model:
         ## compute grad of instance factor
         ins_factor_grad     = np.zeros(ins_factor.shape)
         xy = idx.nonzero()
-        for k in xrange(len(xy[0])):
-            i = xy[0][k]
-            j = xy[1][k]
-            ins_factor_grad[i:i+1,:]   += output_grad[i,j] \
+        if sp.isspmatrix(output_grad):
+            #ins_factor_grad = output_grad * np.transpose(self.lw)
+            for i,j,v in zip(xy[0], xy[1], output_grad.data):
+                ins_factor_grad[i:i+1,:] += v * np.transpose(self.lw[:,j:j+1])
+        else:
+            for k in xrange(len(xy[0])):
+                i = xy[0][k]
+                j = xy[1][k]
+                ins_factor_grad[i:i+1,:]   += output_grad[i,j] \
                                           * np.transpose(self.lw[:, j:j+1])
+        '''
+        ins_factor_grad = output_grad * np.transpose(self.lw)
+        '''
 
+        #import cProfile, pstats, StringIO
+        #pr =  cProfile.Profile()
+        #pr.enable()
         tmp = ins_factor_grad
         for i in xrange( len(self.w) - 1, -1, -1):
-            tmp = tmp * grad(tmp, type =  self.parameters["hidden_active"] )
-            if 0 == i and type(x) == type(sp.csr_matrix([[0]])):
-                self.grad_w[i] = np.transpose(x) * tmp / num_rates
+            tmp = tmp * grad(tmp, grad_type =  self.parameters["hidden_active"] )
+            if 0 == i and sp.isspmatrix(x):#type(x) == type(sp.csr_matrix([[0]])):
+                #self.grad_w[i] = np.transpose(x) * tmp / num_rates
+                self.grad_w[i] = np.transpose(x) * sp.csr_matrix(tmp) / num_rates
             elif 0 == i:
                 self.grad_w[i] = np.dot( np.transpose(x), tmp ) / num_rates
             else:
@@ -395,6 +483,12 @@ class Model:
             self.grad_b[i] = np.sum(tmp, 0) / num_rates
             if 0 == i:  continue
             tmp = np.dot( tmp, np.transpose(self.w[i]) )
+        #pr.disable()
+        #s = StringIO.StringIO()
+        #sortby = 'cumulative'
+        #ps = pstats.Stats(pr, stream = s).sort_stats(sortby)
+        #ps.print_stats()
+        #print s.getvalue()
 
     
     def apply(self):
@@ -403,14 +497,22 @@ class Model:
         label_lambda = self.parameters["label_lambda"] 
         n_layer      = len(self.w)
         for i in xrange(n_layer):
-            self.w[i] -= self.rater.rate_w[i] * ( self.grad_w[i] \
-                                                  + 2 * ins_lambda * self.w[i])
-            self.b[i] -= self.rater.rate_b[i] * ( self.grad_b[i] \
-                                                  + 2 * ins_lambda * self.b[i])
-        
+            if sp.isspmatrix(self.grad_w[i]):
+                nonzero             = self.grad_w[i].nonzero()
+                self.w[i][nonzero] -= self.rater.rate_w[i][nonzero] * ( np.asarray(self.grad_w[i].data) \
+                                                               + 2 * ins_lambda * self.w[i][nonzero])
+            else:
+                self.w[i] -= self.rater.rate_w[i] * (self.grad_w[i] + 2 * ins_lambda * self.w[i])
+            self.b[i] -= self.rater.rate_b[i] * ( self.grad_b[i] + 2 * ins_lambda * self.b[i])
+       
+        if sp.isspmatrix(self.grad_lw):
+            nonzero           = self.grad_lw.nonzero()
+            self.lw[nonzero] -= self.rater.rate_lw[nonzero] * (np.asarray(self.grad_lw.data) + 2 * label_lambda * self.lw[nonzero])
+        else:
+            self.lw -= self.rater.rate_lw * (self.grad_lw + 2 * label_lambda * self.lw) 
         self.lb -= self.rater.rate_lb * (self.grad_lb + 2 * label_lambda * self.lb)
-        self.lw -= self.rater.rate_lw * (self.grad_lw + 2 * label_lambda * self.lw)
-        
+    
+    ''' 
     def revoke(self):        
         ins_lambda   = self.parameters["ins_lambda"]
         label_lambda = self.parameters["label_lambda"] 
@@ -426,5 +528,5 @@ class Model:
         self.lb += self.rater.rate_lb * (self.grad_lb\
                                          + 2 * label_lambda * self.lb)
         
- 
+    '''
         

@@ -102,7 +102,7 @@ def train_mem(train_file, parameters):
         start = 0
         end = batch
         while start < num:
-            #print start, end
+            logger.info("start = %d, end = %d\n"%(start, end))
             if end > num:   end = num
 
             batch_x = x[start:end, :]
