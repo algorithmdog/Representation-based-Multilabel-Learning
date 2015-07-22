@@ -72,8 +72,14 @@ class SvmReader:
         if num_ins == 0:
             return None, None        
 
-        x = sp.lil_matrix((num_ins, self.num_feature))
-        y = sp.lil_matrix((num_ins, self.num_label))
+        #x = sp.lil_matrix((num_ins, self.num_feature))
+        #y = sp.lil_matrix((num_ins, self.num_label))
+        xr = []
+        xc = []
+        xd = []
+        yr = []
+        yc = []
+        yd = []
 
         for i in xrange(len(lines)):
             line = lines[i]
@@ -83,31 +89,35 @@ class SvmReader:
             if ":" not in eles[0]:
                 for j in xrange(1,len(eles)):
                     kv = eles[j].split(":")
-                    x[i,int(kv[0])] = float(kv[1])
-            
+                    #x[i,int(kv[0])] = float(kv[1])
+                    xr.append(i)
+                    xc.append(int(kv[0]))
+                    xd.append(float(kv[1]))
                 labels = eles[0].strip().split(",")
+                #print "xxx",line,labels
                 for j in xrange(len(labels)):
-                    y[i,int(labels[j])] = 1
-
+                    #y[i,int(labels[j])] = 1
+                    yr.append(i)
+                    yc.append(int(labels[j]))
+                    yd.append(1)
             else:
                 for j in xrange(0,len(eles)):
                     kv = eles[j].split(":")
-                    x[i,int(kv[0])] = float(kv[1])
+                    #x[i,int(kv[0])] = float(kv[1])
+                    xr.append(i)
+                    xc.append(int(kv[0]))
+                    xd.append(float(kv[1]))
         
-        return sp.csr_matrix(x), sp.csr_matrix(y)
+        return sp.csr_matrix((xd,(xr,xc)),(num_ins,self.num_feature)), sp.csr_matrix((yd,(yr,yc)),(num_ins,self.num_label))
     
     def full_read(self):
-        x, y, has_next = self.read()
-        ##setting the larger batch
-        m1,n1 = x.shape
-        m2,n2 = y.shape
-        num = n1 + n2
-
-        while True == has_next:
-            ix, iy, has_next = self.read()
-            x = sp.vstack([x,ix], 'csr')
-            y = sp.vstack([y,iy], 'csr')
-        return x,y
+        lines = []
+        for line in self.file:
+            if line is None or len(line.strip()) == 0:  break
+            #print "full_read",line
+            lines.append(line.strip())
+        
+        return self.parse(lines)
 
     def read(self):
         if None == self.next_x:

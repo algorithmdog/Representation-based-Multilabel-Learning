@@ -14,7 +14,6 @@ import scipy.sparse as sp
 import random
 import math
 import Roulette
-random.seed(0)
 
 
 class Sampler:
@@ -73,20 +72,45 @@ class InstanceSampler(Sampler):
 
     def sample(self, y):
         #sample = np.int_(y)  
-        sample = sp.lil_matrix(y)  
-        m,n = sample.shape  
+        #sample = sp.lil_matrix(y)  
+        #sample = y.copy()
+        m,n  = y.shape  
         #num = np.sum(sample,1)
-        num = sparse_sum(sample,1)
-        for i in xrange(len(num)):
-            num[i] = self.ratio * int(num[i])
+        #num = sparse_sum(sample,1)
+        num  = np.asarray(y.sum(1))[:,0]
+        num.astype(np.int32)
+        num *= self.ratio
+        #for i in xrange(len(num)):
+        #    num[i] = self.ratio * int(num[i])
             #num[i] =  max(self.ratio * int(num[i]), int(n * 0.1))
+        
+        nonzero = y.nonzero()
 
+        total = np.sum(num)
+        cols  = np.random.random(total)
+        #print "total",total
+        cols *= n;
+        cols  = cols.astype(np.int32).tolist()
+        #print len(cols)
+        cols += nonzero[1].tolist()
+        #print len(cols)
+        rows  = np.zeros(total)
+        pre   = 0
         for i in xrange(m):
-            for j in xrange(min(num[i], int(n/2))):
-                idx = int(random.random() * n)
-                if n == idx: idx = n - 1
-                sample[i, idx] = 1
-                     
+            after = pre + num[i]
+            rows[pre:after] = i
+            pre   = after
+        rows  = rows.astype(np.int32).tolist()
+        rows += nonzero[0].tolist()
+        vals  = np.ones(len(rows)).tolist()
+        
+        sample = sp.csr_matrix((vals,(rows,cols)),(m,n))
+        #for i in xrange(m):
+        #    for j in xrange(min(int(num[i]), int(n/2))):
+        #        idx = int(random.random() * n)
+        #        if n == idx: idx = n - 1
+        #        sample[i, idx] = 1
+        #print len(sample.nonzero()[0])
         return sample
 
 

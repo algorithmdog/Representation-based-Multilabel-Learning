@@ -28,7 +28,7 @@ def active(A, active_type="sgmoid", idx = None):
     elif "tanh" == active_type:
         A = np.tanh(A)
     elif "rel" == active_type:
-        if sp.issmatrix(A):
+        if sp.isspmatrix(A):
             A.data[ A.data <0 ] = 0
         else:
             A[ A < 0 ] = 0;
@@ -136,9 +136,14 @@ def grad(A, Y = None, grad_type = " sgmoid_negative_log_likelihood "):
 
     if "sgmoid_negative_log_likelihood" == grad_type:
         if sp.isspmatrix(A):
-            R = sp.csr_matrix(A)
-            R.data =  A.data - np.asarray(Y[A.nonzero()])[0,:]
-            return R
+            nonzero = A.nonzero()
+            if len(nonzero[0])!= 0:
+                R = A.copy()
+                #print "in grad", type(R)
+                R.data =  A.data - np.asarray(Y[A.nonzero()])[0,:]
+                return R
+            else:
+                return A
         else:
             return A - Y;        
     elif "linear_least_square" == grad_type:

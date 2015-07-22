@@ -6,11 +6,12 @@ sys.path.append(path + "/utils/Python_Utils");
 sys.path.append(path + "/../utils/Python_Utils");
 
 from latent_factor import *;
-import Logger;
+import logging, Logger;
 import arffio;
 import pickle;
 import numpy as np;
 import copy;
+import time;
 
 def printUsages():
     print "Usage: predict.py test_file result_file model_file";
@@ -31,19 +32,24 @@ def predict(model, x):
     p  = model.ff(x);
     
     m,n = p.shape;
+    '''    
     for i in xrange(m):
         for j in xrange(n):
             if p[i,j] > model.thrsel.threshold:
                 p[i,j] = 1;
             else:
                 p[i,j] = 0;
-
+    
+    '''
+    p[p > model.thrsel.threshold] = 1
+    p[p != 1 ] = 0
     return p;
 
 
 if __name__ == "__main__":
+    logger = logging.getLogger(Logger.project_name)
+    
     parameters = parseParameter(sys.argv);
-
     test_file   = parameters["test_file"];
     model_file  = parameters["model_file"];
     result_file = parameters["result_file"];
@@ -51,12 +57,26 @@ if __name__ == "__main__":
     reader  = arffio.SvmReader(test_file, batch = 1000000000000);
     x, _    = reader.full_read();
 
-    #load model and predition
-    f     = open(model_file, "r");
-    s     = f.read();
-    model = pickle.loads(s);
-    p     = predict(model, x);
+    model = Model(dict())
+    model.load(model_file)
+
+
+    #import cProfile, pstats, StringIO
+    #pr =  cProfile.Profile()
+    #pr.enable()
     
+    start = time.time()
+    p     = predict(model, x);
+    end   = time.time()
+    logger.info("predict time is %f seconds"%((end-start)))        
+    
+    #pr.disable()
+    #s = StringIO.StringIO()
+    #sortby = 'cumulative'
+    #ps = pstats.Stats(pr, stream = s).sort_stats(sortby)
+    #ps.print_stats()
+    #print "update",s.getvalue()
+
     ##predctions to sparse data
     y = sp.csr_matrix(p)
     x = np.zeros((p.shape[0],1))

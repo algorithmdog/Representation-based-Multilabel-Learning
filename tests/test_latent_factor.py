@@ -30,7 +30,7 @@ class LatentFactorTester(unittest.TestCase):
         model = Model(self.parameters);
         
         ##init w and b
-        for idx in xrange(len(model.num) - 1):
+        for idx in xrange(len(model.w)):
             model.w[idx] = np.ones(model.w[idx].shape) / 100.0;        
             model.b[idx] = np.ones(model.b[idx].shape) / 100.0;
         
@@ -45,7 +45,7 @@ class LatentFactorTester(unittest.TestCase):
         model = Model(self.parameters);
         
         ##init w and b
-        for idx in xrange(len(model.num) - 1):
+        for idx in xrange(len(model.w)):
             model.w[idx] = np.ones(model.w[idx].shape) / 10.0;        
             model.b[idx] = np.ones(model.b[idx].shape) / 10.0;
             model.w[idx][0,0] = 0;

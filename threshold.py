@@ -1,12 +1,13 @@
 #!/bin/python
 import math
+import numpy as np
 
 class ThresholdSel:
     def __init__(self):
         self.threshold = 0
         self.num       = 0
-        self.low       = -2
-        self.high      = 2
+        self.low       = -5
+        self.high      = 5
         self.step      = 0.01
     def update(self, predict, gold):
         #print 'predict'
@@ -19,14 +20,20 @@ class ThresholdSel:
         high = self.high
         gold_lcard  = self.lcard_sparse(gold);
 
+        #print predict
         numSplit = int(math.ceil( (high-low) / step))
-        distributes = [0.0 for i in xrange(numSplit+1)]
-        for i in xrange(m):
-            for j in xrange(n):
-                idx = int(math.ceil((predict[i,j]-low) / step))
-                if idx < 0: idx = 0
-                if idx > numSplit: idx = numSplit
-                distributes[idx] += 1.0;        
+        distributes = np.zeros(numSplit + 1) #[0.0 for i in xrange(numSplit+1)]
+        predict = np.ceil((predict-low)/step)
+        predict = predict.astype(np.int32)
+        predict[predict < 0] = 0
+        predict[predict > numSplit] = numSplit
+
+        bincount = np.bincount(predict.reshape(-1),minlength=numSplit+1)
+        distributes += bincount
+        #for i in xrange(m):
+        #    for j in xrange(n):
+        #        idx = predict[i,j]
+        #        distributes[idx] += 1.0;        
 
         
         threshold = low

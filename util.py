@@ -12,13 +12,13 @@ def sparse_sum(sparse_matrix1, axis = 0):
         result = np.zeros(n, np.int32)
         xy = sparse_matrix.nonzero()
         for i,j,v in zip(xy[0],xy[1],np.asarray(sparse_matrix.data)):
-            result[j] += int(result[j] + v)
+            result[j] += int(v)
         return result
     elif 1 == axis:
         result = np.zeros(m, np.int32)
         xy = sparse_matrix.nonzero()
         for i,j,v in zip(xy[0],xy[1],np.asarray(sparse_matrix.data)):
-            result[i] = int(result[i] + v)
+            result[i] += int(v)
         return result
     else:
         raise Exception("Invalid axis=%d"%axis)

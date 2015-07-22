@@ -12,6 +12,11 @@ import pickle
 import numpy as np
 import scipy.sparse as sp
 import sampler
+import random
+import time
+
+np.random.seed(0)
+random.seed(0)
 
 def printUsages():
     print "Usage: train.py [options] train_file model_file"
@@ -73,7 +78,9 @@ def parseParameter(argv):
             parameters["sample_ratio"] = int(argv[i+1])
         elif "-num_factor" == argv[i]:
             parameters["num_factor"] = int(argv[i+1])
-        else:
+       	elif "-sparse_thr" == argv[i]:
+            parameters["sparse_thr"] = float(argv[i+1])
+	else:
             printUsages()
             exit(1)
         i += 2
@@ -98,12 +105,17 @@ def train_mem(train_file, parameters):
     sample.update(y)
     logger.info("Sampling initialization done")
 
+    start_time = time.time()
     for iter1 in xrange(niter):
         start = 0
         end = batch
         while start < num:
-            logger.info("start = %d, end = %d\n"%(start, end))
+            #logger.info("start = %d, end = %d\n"%(start, end))
             if end > num:   end = num
+            
+#            import cProfile, pstats, StringIO
+#            pr =  cProfile.Profile()
+#            pr.enable()
 
             batch_x = x[start:end, :]
             batch_y = y[start:end, :] 
@@ -112,13 +124,20 @@ def train_mem(train_file, parameters):
 
             start += batch;
             end += batch;
-
+#            pr.disable()
+#            s = StringIO.StringIO()
+#            sortby = 'cumulative'
+#            ps = pstats.Stats(pr, stream = s).sort_stats(sortby)
+#            ps.print_stats()
+#            print "update",s.getvalue()
+            
         logger.info("The %d-th iteration completes"%(iter1+1)); 
     
     #####tuning the threshold
+    total = 0
     start = 0
     end = batch
-    while start < num:
+    while start < num and total < 1000:
         if end > num: end = num
         batch_x = x[start:end,:]
         batch_y = y[start:end,:]
@@ -126,7 +145,11 @@ def train_mem(train_file, parameters):
         model.thrsel.update(batch_p, batch_y)
         start += batch
         end   += batch
+        total += 1
+
     logger.info("The threshold tuning completes") 
+    end_time = time.time()
+    logger.info("The training time is %f"%(end_time-start_time))
 
     return model
 
@@ -191,11 +214,14 @@ def main(argv):
     else:
         model = train(train_file, parameters)    
 
+    
     #write the model
-    s = pickle.dumps(model)
-    f = open(model_file, "w")
-    f.write(s)
-    f.close()
+    #model.clear_for_save()
+    model.save(model_file)
+    #s = pickle.dumps(model)
+    #f = open(model_file, "w")
+    #f.write(s)
+    #f.close()
 
 if __name__ == "__main__":
     main(sys.argv)
