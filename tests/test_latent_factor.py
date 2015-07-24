@@ -11,6 +11,7 @@ from Matrix_Utils  import *;
 from latent_factor import *;
 import unittest;
 import scipy.sparse as sp
+import active 
 import pickle;
 
 class LatentFactorTester(unittest.TestCase):
@@ -85,14 +86,14 @@ class LatentFactorTester(unittest.TestCase):
         expect = np.array([[0.50255597219646853, 0.50255597219646853],\
                            [0.50255297542884314, 0.50255297542884314]]);
         output = model.ff(x);
-        self.assertTrue(is_matrix_equals(output, expect), True);
+        self.assertTrue(is_matrix_equals(active.active(output), expect), True);
     
         
         ##sparse
         model  = self.init_model();
         x      = sp.csr_matrix([[1,2],[0,1]]);
         output = model.ff(x);
-        self.assertTrue(is_matrix_equals(output, expect), True);
+        self.assertTrue(is_matrix_equals(active.active(output), expect), True);
 
 
 
