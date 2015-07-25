@@ -81,10 +81,10 @@ class AdaGrad(LearnRate):
                 #t1,t2 = model.grad_w[i].shape
                 #print "grad_w sparity",len(nonzero[0]) * 1.0 / t1 /t2
                 self.nonzero["%d"%i] = nonzero
-                grad_w  = np.asarray(model.grad_w[i].data) + 2 * model.ins_lambda * model.w[i][nonzero]
+                grad_w  = np.asarray(model.grad_w[i].data) + 2 * (model.l2_lambda) * model.w[i][nonzero]
                 self.ada_w[i][nonzero] = self.ada_w[i][nonzero] + grad_w * grad_w            
             else:
-                grad_w = model.grad_w[i] + 2 * model.ins_lambda * model.w[i]
+                grad_w = model.grad_w[i] + 2 * (model.l2_lambda) * model.w[i]
                 self.ada_w[i] = self.ada_w[i] + grad_w * grad_w
             
             grad_b = model.grad_b[i]
@@ -97,10 +97,10 @@ class AdaGrad(LearnRate):
             #t1,t2 = model.grad_lw.shape
             #print "grad_lw sparity",len(nonzero[0])*1.0/t1 /t2
             self.nonzero['l'] = nonzero
-            grad_lw = np.asarray(model.grad_lw.data) + 2 * model.label_lambda * model.lw[nonzero]
+            grad_lw = np.asarray(model.grad_lw.data) + 2 * model.l2_lambda * model.lw[nonzero]
             self.ada_lw[nonzero] = self.ada_lw[nonzero] + grad_lw * grad_lw      
         else:
-            grad_lw = model.grad_lw + 2 * model.label_lambda * model.lw
+            grad_lw = model.grad_lw + 2 * model.l2_lambda * model.lw
             self.ada_lw = self.ada_lw + grad_lw * grad_lw
         
         grad_lb = model.grad_lb
@@ -139,8 +139,7 @@ class Model:
         self.output_active = "sgmoid"
         self.loss          = "negative_log_likelihood"
         self.learnrate     = 0.1
-        self.ins_lambda    = 0.001
-        self.label_lambda  = 0.001
+        self.l2_lambda        = 0.001
         self.sizes         = []
         self.sparse_thr    = 1
 	#self.sparse_thr    = 0.000000001
@@ -160,10 +159,8 @@ class Model:
             self.loss = parameters["loss"]
         if "learnrate" in parameters:
             self.learnrate = parameters["learnrate"]
-        if "ins_lambda" in parameters:
-            self.ins_lambda = parameters["ins_lambda"]
-        if "label_lambda" in parameters:
-            self.label_lambda  = parameters["label_lambda"]
+        if "l2_lambda" in parameters:
+            self.l2_lambda = parameters["l2_lambda"]
         if "sizes" in parameters:
             self.sizes = parameters["sizes"]
         if "sparse_thr" in parameters:
@@ -572,8 +569,7 @@ class Model:
         #pr =  cProfile.Profile()
         #pr.enable()
         learn_rate   = self.learnrate
-        ins_lambda   = self.ins_lambda
-        label_lambda = self.label_lambda
+        l2_lambda       = self.l2_lambda
         n_layer      = len(self.w)
         for i in xrange(n_layer):
         #    print type(self.grad_w[i])
@@ -582,8 +578,8 @@ class Model:
                 nonzero             = self.rater.nonzero['%d'%i]
         #        print "nonzero_grad",self.grad_w[i].nonzero()
                 self.w[i][nonzero] -= self.rater.rate_w[i][nonzero] * ( np.asarray(self.grad_w[i].data) \
-                                      + 2 * ins_lambda * self.w[i][nonzero])
-                #self.w[i]  -= self.rater.rate_w[0] * (np.asarray(self.grad_w[i].todense()) + 2 * ins_lambda * self.w[i])
+                                      + 2 * l2_lambda * self.w[i][nonzero])
+                #self.w[i]  -= self.rater.rate_w[0] * (np.asarray(self.grad_w[i].todense()) + 2 * l2_lambda * self.w[i])
                # print "w[0]"
                # m,n = self.w[0].shape
                 #for k in xrange(m):
@@ -592,18 +588,17 @@ class Model:
                  #   print ""
 
             else:
-                self.w[i] -= self.rater.rate_w[i] * (self.grad_w[i] + 2 * ins_lambda * self.w[i])
-            self.b[i] -= self.rater.rate_b[i] * ( self.grad_b[i] + 2 * ins_lambda * self.b[i])
+                self.w[i] -= self.rater.rate_w[i] * (self.grad_w[i] + 2 * l2_lambda * self.w[i])
+            self.b[i] -= self.rater.rate_b[i] * ( self.grad_b[i] + 2 * l2_lambda * self.b[i])
        
        
         if sp.isspmatrix(self.grad_lw):
             nonzero           = self.rater.nonzero['l']
             self.lw[nonzero] -= self.rater.rate_lw[nonzero] * (np.asarray(self.grad_lw.data) \
-                                + 2 * label_lambda * self.lw[nonzero])
-            #self.lw -= self.rater.rate_lw * (np.asarray(self.grad_lw.todense()) + 2 * label_lambda * self.lw)
+                                + 2 * l2_lambda * self.lw[nonzero])
         else:
-            self.lw -= self.rater.rate_lw * (self.grad_lw + 2 * label_lambda * self.lw) 
-        self.lb -= self.rater.rate_lb * (self.grad_lb + 2 * label_lambda * self.lb)
+            self.lw -= self.rater.rate_lw * (self.grad_lw + 2 * l2_lambda * self.lw) 
+        self.lb -= self.rater.rate_lb * (self.grad_lb + 2 * l2_lambda * self.lb)
     
         #pr.disable()
         #s = StringIO.StringIO()

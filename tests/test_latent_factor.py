@@ -1,11 +1,7 @@
 #!/bin/python
 import os;
 import sys;
-
-path = os.path.split(os.path.realpath(__file__))[0];
-sys.path.append(path);
-sys.path.append(path + "/../utils/Python_Utils");
-sys.path.append(path + "/../Python_Utils");
+sys.path.append("./tests")
 
 from Matrix_Utils  import *;
 from latent_factor import *;
