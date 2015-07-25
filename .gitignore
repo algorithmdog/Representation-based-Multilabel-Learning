@@ -1,5 +1,6 @@
 utils
 data
+*.log
 *.pyc
 *.arff
 *.model

@@ -12,23 +12,21 @@ import pickle
 import numpy as np
 import scipy.sparse as sp
 import sampler
+import random
+import time
+
+np.random.seed(0)
+random.seed(0)
 
 def printUsages():
     print "Usage: train.py [options] train_file model_file"
     print "options"
-    print "   -m: training with all data in mem (default 0)"
-    print "         0, a part of training data in mem"
-    print "         1, all data in mem, 0 denote sgd"
-    print "   -i: ins lambda, the instance regularization coefficient (default 0.001)"
-    print "   -l: label lambda, the label regularization coefficient (default 0.001)" 
-    print "   -s: sizes, the architecture: [num_node_layer1,num_node_layer2,...] (default [])"
-    print "   -b: batch, the number of instances in a batch (default 100)"
-    print "   -n: num of iter, the number of iterations (default 20)"
-    print "   -t: sample_type, the sample_type"
-    print "         instance_sample, instance orient sampling scheme"
-    print "         label_sample, label orient sampling scheme"
-    print "         correlation_sample, sampling scheme exploits label correlations"
+    print "   -lambda: the regularization coefficient (default 0.001)"
+    print "   -struct: the architecture of instance represnation learner: [num_node_layer1,num_node_layer2,...] (default [])"
+    print "   -batch: batch, the number of instances in a batch (default 100)"
+    print "   -niter: num of iter, the number of iterations (default 20)"
     print "   -num_factor: the number of inner factors"
+    print "   -sample_ratio: the ratio of sampling"
 
 def parseParameter(argv):
     if len(argv) < 3: #at least 4 paramters: train.py train_file model_file
@@ -38,21 +36,24 @@ def parseParameter(argv):
     parameters = dict()
     parameters["train_file"]   = argv[len(argv) - 2]
     parameters["model_file"]   = argv[len(argv) - 1]
-    parameters["ins_lambda"]   = 0.001
-    parameters["label_lambda"] = 0.001
-    parameters["sizes"]        = [] 
+    parameters["lambda"]       = 0.001
+    parameters["struct"]       = [] 
     parameters["batch"]        = 10
     parameters["niter"]        = 20
-    parameters["sample_type"]  = "full"
+    parameters["num_factor"]   = 50 
+    parameters["sample_ratio"] = 5 
+
+    ##not open option yet
     parameters["mem"]          = 1
-   
+    parameters["sample_type"]  = "instance_sample"
+    parameters["sparse_thr"]   = 0.01
+ 
     i = 1
     while i + 1 < len(argv) - 2:
-        if  "-i" == argv[i]:
-            parameters["ins_lambda"]   = float(argv[i+1])
-        elif "-l" == argv[i]:
-            parameters["label_lambda"] = float(argv[i+1])
-        elif "-s" == argv[i]:
+        if  "-lambda" == argv[i]:
+            parameters["lambda"]   = float(argv[i+1])
+            i += 2
+        elif "-struct" == argv[i]:
             line  = argv[i+1]
             line  = line.strip()
             line  = line[1:len(line)-1]
@@ -60,23 +61,25 @@ def parseParameter(argv):
             if "" != line:
                 eles  = line.split(",")
                 sizes = map(int, eles)
-                parameters["sizes"] =  sizes
-        elif "-b" == argv[i]:
+                parameters["struct"] =  sizes
+            i += 2
+        elif "-batch" == argv[i]:
             parameters["batch"] = int(argv[i+1]) 
-        elif "-n" == argv[i]:
+            i += 2
+        elif "-niter" == argv[i]:
             parameters["niter"] = int(argv[i+1])   
-        elif "-t" == argv[i]:
-            parameters["sample_type"] = argv[i+1]
-        elif "-m" == argv[i]:
-            parameters["mem"] = int(argv[i+1])
-        elif "-sample_ratio" == argv[i]:
-            parameters["sample_ratio"] = int(argv[i+1])
+            i += 2
         elif "-num_factor" == argv[i]:
             parameters["num_factor"] = int(argv[i+1])
+            i += 2
+        elif "-sample_ratio" == argv[i]:
+            parameters["sample_ratio"] = float(argv[i+1])
+            i += 2
         else:
+            print argv[i]
             printUsages()
             exit(1)
-        i += 2
+        
 
     return parameters
 
@@ -98,12 +101,17 @@ def train_mem(train_file, parameters):
     sample.update(y)
     logger.info("Sampling initialization done")
 
+    start_time = time.time()
     for iter1 in xrange(niter):
         start = 0
         end = batch
         while start < num:
-            #print start, end
+            #logger.info("start = %d, end = %d\n"%(start, end))
             if end > num:   end = num
+            
+#            import cProfile, pstats, StringIO
+#            pr =  cProfile.Profile()
+#            pr.enable()
 
             batch_x = x[start:end, :]
             batch_y = y[start:end, :] 
@@ -112,13 +120,20 @@ def train_mem(train_file, parameters):
 
             start += batch;
             end += batch;
-
+#            pr.disable()
+#            s = StringIO.StringIO()
+#            sortby = 'cumulative'
+#            ps = pstats.Stats(pr, stream = s).sort_stats(sortby)
+#            ps.print_stats()
+#            print "update",s.getvalue()
+            
         logger.info("The %d-th iteration completes"%(iter1+1)); 
     
     #####tuning the threshold
+    total = 0
     start = 0
     end = batch
-    while start < num:
+    while start < num and total < 1000:
         if end > num: end = num
         batch_x = x[start:end,:]
         batch_y = y[start:end,:]
@@ -126,7 +141,11 @@ def train_mem(train_file, parameters):
         model.thrsel.update(batch_p, batch_y)
         start += batch
         end   += batch
+        total += 1
+
     logger.info("The threshold tuning completes") 
+    end_time = time.time()
+    logger.info("The training time is %f"%(end_time-start_time))
 
     return model
 
@@ -176,7 +195,6 @@ def main(argv):
 
     train_file  = parameters["train_file"]
     model_file  = parameters["model_file"]
-    sample_type = parameters["sample_type"];
     mem         = parameters["mem"]
 
     # read a instance to know the number of features and labels
@@ -191,11 +209,14 @@ def main(argv):
     else:
         model = train(train_file, parameters)    
 
+    
     #write the model
-    s = pickle.dumps(model)
-    f = open(model_file, "w")
-    f.write(s)
-    f.close()
+    #model.clear_for_save()
+    model.save(model_file)
+    #s = pickle.dumps(model)
+    #f = open(model_file, "w")
+    #f.write(s)
+    #f.close()
 
 if __name__ == "__main__":
     main(sys.argv)
