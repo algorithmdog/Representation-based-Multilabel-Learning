@@ -4,15 +4,11 @@ import sys
 
 path = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(path)
-sys.path.append(path + "/../utils/Python_Utils")
-sys.path.append(path + "/../Python_Utils")
 
 from active       import *
-from Matrix_Utils import *
 from threshold    import *
 import numpy as np
 import scipy.sparse as sp
-import util
 import math
 import pickle
 import random
@@ -553,7 +549,7 @@ class Model:
                     self.grad_w[i] = self.grad_w[i].tocsr()
                 else:
                     self.grad_w[i] = np.transpose(x) * tmp / num_rates
-                    self.grad_w[i] = self.grad_w[i].tocsr()
+                    #self.grad_w[i] = self.grad_w[i].tocsr()
             elif 0 == i:
                 self.grad_w[i] = np.dot( np.transpose(x), tmp ) / num_rates
             else:

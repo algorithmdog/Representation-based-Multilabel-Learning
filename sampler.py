@@ -6,14 +6,12 @@ sys.path.append(path + "/utils/Python_Utils")
 sys.path.append(path + "/../utils/Python_Utils")
 
 from arffio import *
-from util   import *
 import logging, Logger
 import pickle
 import numpy as np
 import scipy.sparse as sp
 import random
 import math
-import Roulette
 
 
 class Sampler:
@@ -26,35 +24,7 @@ class Sampler:
 
 class FullSampler(Sampler):
     def sample(self, y):
-        return sp.lil_matrix(y.shape)
-
-class CorrelationSampler(Sampler):
-    def __init__(self, parameters):
-        self.parameters = dict()
-        self.parameters["num_label"]  = 1000
-        self.parameters["num_sample_factor"] = 20
-        self.parameters["lambda"]     = 0.001
-        
-        if "num_label" in parameters:
-            self.parameters["num_label"] = parameters["num_label"]
-        if "num_sample_factor" in parameters:
-            self.parameters["num_sample_factor"] = \
-                parameters["num_sample_factor"]
-        if "lambda" in parameters:
-            self.parameters["lambda"] = parameters["lambda"]
-            
-        num_label  = self.parameters["num_label"]
-        num_sample_factor = self.parameters["num_sample_factor"] 
-        fan_in  = num_label
-        fan_out = num_sample_factor
-
-        r = math.sqrt( 6.0/(fan_in+fan_out) )
-        w = [ [random.random() * 2 * r - r for j in xrange(num_label)]\
-                                           for i in xrange(num_sample_factor) ]
-        b = [ random.random() * 2 * r -r for j in xrange(num_label) ]
-   
-        self.w = np.array(w)
-        self.b = np.array(b) 
+        return sp.lil_matrix(y.shape) + 1
      
     def update(self, y):
         lili = 0
@@ -115,67 +85,6 @@ class InstanceSampler(Sampler):
 
 
 
-class NegativeSampler(Sampler):
-    def __init__(self, parameters):
-        self.distribution = None
-        self.num = 0
-        self.ratio = 5
-        if "sample_ratio" in parameters:
-            self.ratio = parameters["sample_ratio"]
-
-    def update(self, y):
-        m,n = y.shape
-        if self.distribution is None:
-            self.distribution = np.array([0.0 for i in xrange(n)])
-            self.num          = 0
-
-        self.distribution  *= self.num
-
-        xy = y.nonzero()
-        for k in xrange(len(xy[0])):
-            i = xy[0][k]
-            j = xy[1][k]
-            self.distribution[j] += 1
-        self.num += len(xy[0])
-
-        self.distribution  /= self.num
-
-    
-    def sample(self, y):
-        
-        sample = sp.lil_matrix(y)
-        m,n = sample.shape
-        num = sparse_sum(sample, 1)
-        for i in xrange(len(num)):
-            num[i] = self.ratio * int(num[i])
-
-        for i in xrange(m):
-            samplenum = min(num[i], n - num[i])
-            
-            if samplenum == n - num[i]:
-                for j in xrange(n):
-                    sample[i,j] = 1
-            else:
-                roulette = '''
-                for i in xrange(samplenum):
-                    idx = Roulette.roulette_pick(self.distribution)
-                    if n == idx: idx = n - 1
-                    while 1 == sample[i, idx]:
-                        idx = Roulette.roulette_pick(self.distribution)
-                        if n == idx: idx = n - 1
-
-                    sample[i, idx] = 1
-                '''
-                for j in xrange(n):
-                    r = random.random()
-                    if r < ((num[i] /self.ratio) * (self.ratio +1)):
-                        sample[i,j] = 1 
-   
-
-        return sample
-
-
-
 def get_sample(parameters):
 
     if "sample_type" not in parameters:
@@ -192,12 +101,6 @@ def get_sample(parameters):
 
     elif "instance_sample" == sample_type:
         return InstanceSampler(parameters)
-
-    elif "correlation_sample" == sample_type:
-        return CorrelationSampler(parameters)
-
-    elif "negative_sample" == sample_type:
-        return NegativeSampler(parameters)
 
     else:
         logger = logging.getLogger(Logger.project_name)
