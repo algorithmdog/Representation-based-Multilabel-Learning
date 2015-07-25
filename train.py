@@ -21,7 +21,7 @@ random.seed(0)
 def printUsages():
     print "Usage: train.py [options] train_file model_file"
     print "options"
-    print "   -lambda: the regularization coefficient (default 0.001)"
+    print "   -l2_lambda: the regularization coefficient (default 0.001)"
     print "   -struct: the architecture of instance represnation learner: [num_node_layer1,num_node_layer2,...] (default [])"
     print "   -batch: batch, the number of instances in a batch (default 100)"
     print "   -niter: num of iter, the number of iterations (default 20)"
@@ -36,7 +36,7 @@ def parseParameter(argv):
     parameters = dict()
     parameters["train_file"]   = argv[len(argv) - 2]
     parameters["model_file"]   = argv[len(argv) - 1]
-    parameters["lambda"]       = 0.001
+    parameters["l2_lambda"]       = 0.001
     parameters["struct"]       = [] 
     parameters["batch"]        = 10
     parameters["niter"]        = 20
@@ -50,8 +50,8 @@ def parseParameter(argv):
  
     i = 1
     while i + 1 < len(argv) - 2:
-        if  "-lambda" == argv[i]:
-            parameters["lambda"]   = float(argv[i+1])
+        if  "-l2_lambda" == argv[i]:
+            parameters["l2_lambda"]   = float(argv[i+1])
             i += 2
         elif "-struct" == argv[i]:
             line  = argv[i+1]
