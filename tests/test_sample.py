@@ -1,19 +1,19 @@
 #!/bin/python
+
 import os
 import sys
 import unittest
 import numpy as np
 import scipy.sparse as sp
 import scipy as sc
-
 import random
 
 path = os.path.split(os.path.realpath(__file__))[0]
-sys.path.append(path + "/../utils/Python_Utils")
-sys.path.append(path + "/../Python_Utils")
+sys.path.append(path + "/tests")
 
 from Matrix_Utils import *
 from sampler      import *
+from sparse_sum   import *
 
 
 class SampleTester(unittest.TestCase):
@@ -32,39 +32,17 @@ class SampleTester(unittest.TestCase):
         with self.assertRaises(Exception):
             sum2 = sparse_sum(a,2)
 
-    def test_negative(self):
-        ns = NegativeSampler(dict())
-        a = sp.csr_matrix([[0,0,1],[1,0,0]])
-        ns.update(a)
-        ns.ratio = 1
-        sample =  ns.sample(a)
-
-        print sample.todense()
-
-        a='''expected = sp.csr_matrix([[1,0,1],[1,0,1]])
-        for e1,e2 in zip(sample.todense(), expected.todense()):
-            self.assertEquals(e1,e2)
-        '''
-
     def test_get_sample(self):
         params = dict()
         params["sample_type"] = "full"
         sample = get_sample(params)
         self.assertTrue( isinstance(sample, FullSampler) )
 
-        params["sample_type"] = "correlation_sample"
-        sample = get_sample(params)
-        self.assertTrue(isinstance(sample, CorrelationSampler));
 
         params["sample_type"] = "instance_sample"
         sample = get_sample(params)
         self.assertTrue(isinstance(sample, InstanceSampler))
 
-
-        params["sample_type"] = "negative_sample"
-        params["ratio"]       = 5
-        sample = get_sample(params)
-        self.assertTrue( isinstance(sample, NegativeSampler) )
 
         with self.assertRaises(Exception):
             params["sample_type"] = "xxx" 

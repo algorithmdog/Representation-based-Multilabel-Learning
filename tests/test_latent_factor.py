@@ -1,16 +1,13 @@
 #!/bin/python
 import os;
 import sys;
-
-path = os.path.split(os.path.realpath(__file__))[0];
-sys.path.append(path);
-sys.path.append(path + "/../utils/Python_Utils");
-sys.path.append(path + "/../Python_Utils");
+sys.path.append("./tests")
 
 from Matrix_Utils  import *;
 from latent_factor import *;
 import unittest;
 import scipy.sparse as sp
+import active 
 import pickle;
 
 class LatentFactorTester(unittest.TestCase):
@@ -30,7 +27,7 @@ class LatentFactorTester(unittest.TestCase):
         model = Model(self.parameters);
         
         ##init w and b
-        for idx in xrange(len(model.num) - 1):
+        for idx in xrange(len(model.w)):
             model.w[idx] = np.ones(model.w[idx].shape) / 100.0;        
             model.b[idx] = np.ones(model.b[idx].shape) / 100.0;
         
@@ -45,7 +42,7 @@ class LatentFactorTester(unittest.TestCase):
         model = Model(self.parameters);
         
         ##init w and b
-        for idx in xrange(len(model.num) - 1):
+        for idx in xrange(len(model.w)):
             model.w[idx] = np.ones(model.w[idx].shape) / 10.0;        
             model.b[idx] = np.ones(model.b[idx].shape) / 10.0;
             model.w[idx][0,0] = 0;
@@ -85,14 +82,14 @@ class LatentFactorTester(unittest.TestCase):
         expect = np.array([[0.50255597219646853, 0.50255597219646853],\
                            [0.50255297542884314, 0.50255297542884314]]);
         output = model.ff(x);
-        self.assertTrue(is_matrix_equals(output, expect), True);
+        self.assertTrue(is_matrix_equals(active.active(output), expect), True);
     
         
         ##sparse
         model  = self.init_model();
         x      = sp.csr_matrix([[1,2],[0,1]]);
         output = model.ff(x);
-        self.assertTrue(is_matrix_equals(output, expect), True);
+        self.assertTrue(is_matrix_equals(active.active(output), expect), True);
 
 
 

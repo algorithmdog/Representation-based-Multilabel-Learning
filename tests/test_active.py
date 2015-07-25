@@ -72,16 +72,16 @@ class ActiveTester(unittest.TestCase):
         y = np.array([[1,   0],   [0,   1]]);
 
         with self.assertRaises(Exception):
-            active.grad(a, type = "sgmoid_negative_log_likelihood");
-            active.grad(a, type = "linear_least_square");
-            active.grad(a, type = "linear_appro_l1_hinge");
-            active.grad(a, type = "linear_l2_hinge");
+            active.grad(a, grad_type = "sgmoid_negative_log_likelihood");
+            active.grad(a, grad_type = "linear_least_square");
+            active.grad(a, grad_type = "linear_appro_l1_hinge");
+            active.grad(a, grad_type = "linear_l2_hinge");
         
-        grad = active.grad(a, y, type = "sgmoid_negative_log_likelihood");
+        grad = active.grad(a, y, grad_type = "sgmoid_negative_log_likelihood");
         tx   = np.array([[-0.9,0.2],[0.3,-0.1]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
 
-        grad = active.grad(a, y, type = "linear_least_square");
+        grad = active.grad(a, y, grad_type = "linear_least_square");
         tx   = np.array([[-1.8,0.4],[0.6,-0.2]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
 
@@ -90,31 +90,31 @@ class ActiveTester(unittest.TestCase):
         a = np.array([[0.1, -2],[0.3, 9]]);        
         y = np.array([[1,0],[0,1]]);
 
-        grad = active.grad(a, y, type = "linear_appro_l1_hinge");
+        grad = active.grad(a, y, grad_type = "linear_appro_l1_hinge");
         tx   = np.array([[-1.17,0],[1,0]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
 
-        grad = active.grad(a, y, type = "linear_l2_hinge");
+        grad = active.grad(a, y, grad_type = "linear_l2_hinge");
         tx   = np.array([[-1.8,0],[2.6,0]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
  
         a = np.array([[0.1,0.2],[0.3,0.9]]);
 
-        grad = active.grad(a, type = "sgmoid");
+        grad = active.grad(a, grad_type = "sgmoid");
         tx   = np.array([[0.09,0.16],[0.21,0.09]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
 
-        grad = active.grad(a, type = "linear");
+        grad = active.grad(a, grad_type = "linear");
         tx   = np.array([[1,1],[1,1]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
 
-        grad = active.grad(a, type = "tanh");
+        grad = active.grad(a, grad_type = "tanh");
         tx   = np.array([[0.99,0.96],[0.91,0.19]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
 
         a = np.array([[0.1, -0.2], [-0.3, 10]]); 
        
-        grad = active.grad(a, type = "rel");
+        grad = active.grad(a, grad_type = "rel");
         tx   = np.array([[1, 0],[0,1]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
 

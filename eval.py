@@ -6,12 +6,10 @@ sys.path.append(path + "/utils/Python_Utils")
 sys.path.append(path + "/../utils/Python_Utils")
 
 from latent_factor import *
-from Float_Utils   import *
 import logging, Logger
 import numpy as np
 import arffio
 import pickle
-import util
 
 def printUsages():
     print "Usage: eval.py result_file true_file"

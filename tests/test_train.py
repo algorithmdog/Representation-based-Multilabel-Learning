@@ -17,7 +17,7 @@ class TrainTester(unittest.TestCase):
     def setUp(self):
         self.argv = [];
         self.argv.append("train");
-        self.argv.append("-i");
+        self.argv.append("-l2_lambda");
         self.argv.append("0.01");
         self.argv.append("train_file");
         self.argv.append("m_file");
@@ -25,19 +25,19 @@ class TrainTester(unittest.TestCase):
         parameters = train.parseParameter(self.argv);
 
     def test_train(self):
-        argv = ["train.py","-n","2","-b","2","-t","full",\
+        argv = ["train.py","-niter","2","-batch","2",\
                 "tests/test_train_data.arff",\
                 "tests/test_train_model.model"]
         train.main(argv) 
 
         
-        argv = ["train.py","-n","2","-b","2","-t","instance_sample",\
+        argv = ["train.py","-niter","2","-batch","2",\
                 "tests/test_train_data.arff",\
                 "tests/test_train_model.model"]
         train.main(argv)
 
         
-        argv = ["train.py","-n","2","-b","2","-t","negative_sample",\
+        argv = ["train.py","-niter","2","-batch","2",\
                 "tests/test_train_data.arff",\
                 "tests/test_train_model.model"]
         train.main(argv)
