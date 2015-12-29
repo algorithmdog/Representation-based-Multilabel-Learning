@@ -32,21 +32,21 @@ class SampleTester(unittest.TestCase):
         with self.assertRaises(Exception):
             sum2 = sparse_sum(a,2)
 
-    def test_get_sample(self):
+    def test_get_sampler(self):
         params = dict()
-        params["sample_type"] = "full"
-        sample = get_sample(params)
+        params["st"] = st.full_sampler
+        sample = get_sampler(params)
         self.assertTrue( isinstance(sample, FullSampler) )
 
 
-        params["sample_type"] = "instance_sample"
-        sample = get_sample(params)
+        params["st"] = st.instance_sampler
+        sample = get_sampler(params)
         self.assertTrue(isinstance(sample, InstanceSampler))
 
 
         with self.assertRaises(Exception):
-            params["sample_type"] = "xxx" 
-            get_sample(params)
+            params["st"] = 110000 
+            get_sampler(params)
     
     def test_sample(self):
         random.seed(0)
@@ -55,14 +55,14 @@ class SampleTester(unittest.TestCase):
         params = dict()
         params["sample_type"] = "instance_sample"
         y = np.array([[1,0,0,0],[0,1.0,1,0]])
-        ins_sample = get_sample(params)
+        ins_sample = get_sampler(params)
         idx = ins_sample.sample(y)
         true = np.array([[1,0,0,1],[1,1,1,1]])
         self.assertTrue(is_matrix_equals(true, idx))    
 
         params = dict()
         params["sample_type"] = "label_sample"
-        label_sample = get_sample( params)
+        label_sample = get_sampler( params)
         idx = label_sample.sample(y)
         true = np.array([[1,1,1,0],[1,1,1,0]])
         self.assertTrue(is_matrix_equals(true, idx))

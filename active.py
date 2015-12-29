@@ -3,9 +3,8 @@ import os;
 import sys;
 
 path      = os.path.split(os.path.realpath(__file__))[0];
-sys.path.append(path + "/utils/Python_Utils");
-sys.path.append(path + "/../utils/Python_Utils");
 
+from common import *
 import math
 import numpy as np
 import scipy.sparse as sp
@@ -16,16 +15,15 @@ import logging,Logger
 #2. sgmoid
 #3. tanh
 #4. rel
-def active(A, active_type="sgmoid", idx = None):
-    if "linear" == active_type:
+def active(A, active_type= act.sgmoid, idx = None):
+    if act.linear == active_type:
         None;
-    elif "sgmoid" == active_type:
+    elif act.sgmoid == active_type:
         if sp.isspmatrix(A):#type(A) == type(sp.csr_matrix([[0]])):
             A.data = 1 / ( 1 + 1 / np.exp(A.data))
         else:
             A = 1 / ( 1 + 1/np.exp(A) );
-
-    elif "tanh" == active_type:
+    elif act.tanh == active_type:
         A = np.tanh(A)
     elif "rel" == active_type:
         if sp.isspmatrix(A):
@@ -36,6 +34,7 @@ def active(A, active_type="sgmoid", idx = None):
         logger = logging.getLogger(Logger.project_name)
         logger.error("Not recognized active function: %s"%active_type);
         raise Exception("Not recognized active function: %s"%active_type);
+
     return A;
 
 
@@ -45,21 +44,21 @@ def active(A, active_type="sgmoid", idx = None):
 #2. least_square 
 #3. appro_l1_hinge
 #4. l2_hinge
-def loss(A, Y, loss_type = "negative_log_likelihood", idx = None):
+def loss(A, Y, loss_type = lo.negative_log_likelihood, idx = None):
     #if idx not specified, full one
     if None == idx:
         idx = np.ones(Y.shape);
-
+        
 
     #negative_log_likelihood
     #loss = -ylog(f(x)) - (1-y)log(1-f(x))
-    if "negative_log_likelihood" == loss_type:
+    if lo.negative_log_likelihood == loss_type:
         return np.sum( -Y * np.log(A) * idx - (1 - Y) * np.log(1-A) * idx );
 
 
     # least_square
     # loss = (y-f(x))^2
-    elif "least_square" == loss_type:
+    elif lo.least_square == loss_type:
         return np.sum( (Y - A) * (Y - A) * idx );
 
 

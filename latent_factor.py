@@ -5,6 +5,7 @@ import sys
 path = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(path)
 
+from common       import *
 from active       import *
 from threshold    import *
 import numpy as np
@@ -130,42 +131,47 @@ class Model:
     def __init__(self):
         nonparamter = 0 
     def __init__(self,  parameters):
-        ##The paramters the user must provide
-        self.num_feature   = 1
-        self.num_label     = 1
-        ##The optional parameters
-        self.num_factor    = 300
-        self.hidden_active = "tanh"
-        self.output_active = "sgmoid"
-        self.loss          = "negative_log_likelihood"
-        self.learnrate     = 0.1
-        self.l2_lambda        = 0.001
+
+        #struct param
+        self.num_feature   = 1 ## this param must be provided
+        self.num_label     = 1 ## this param must be provided
+        self.num_factor    = 50
+        self.hidden_active = act.tanh
+        self.output_active = act.sgmoid
         self.sizes         = []
+        
+        #train param
+        self.loss          = lo.negative_log_likelihood
+        self.learnrate     = 0.1
+        self.l2_lambda     = 0.001
         self.sparse_thr    = 1
-	#self.sparse_thr    = 0.000000001
+        self.optimization  = op.gradient
+
 	
-        if "num_feature" in parameters:
-            self.num_feature = parameters["num_feature"]
-        if "num_label" in parameters:
-            self.num_label = parameters["num_label"] 
-        ##The optional parameters
-        if "num_factor" in parameters:
-            self.num_factor = parameters["num_factor"] 
-        if "hidden_active" in parameters:
-            self.hidden_active = parameters["hidden_active"]
-        if "output_active" in parameters:   
-            self.output_active = parameters["output_active"]
-        if "loss" in parameters:
-            self.loss = parameters["loss"]
-        if "learnrate" in parameters:
-            self.learnrate = parameters["learnrate"]
-        if "l2_lambda" in parameters:
-            self.l2_lambda = parameters["l2_lambda"]
+        if "nx" in parameters:
+            self.num_feature    = parameters["nx"]
+        if "ny" in parameters:
+            self.num_label      = parameters["ny"] 
+
+        if "h" in parameters:
+            self.num_factor     = parameters["h"] 
+        if "ha" in parameters:
+            self.hidden_active  = parameters["ha"]
+        if "oa" in parameters:   
+            self.output_active  = parameters["oa"]
         if "sizes" in parameters:
-            self.sizes = parameters["sizes"]
-        if "sparse_thr" in parameters:
-            self.sparse_thr = parameters["sparse_thr"]
-    
+            self.sizes          = parameters["sizes"]
+        if "l" in parameters:
+            self.loss           = parameters["l"]
+        if "l2" in parameters:
+            self.l2_lambda      = parameters["l2"]
+        if "sp" in parameters:
+            self.sparse_thr     = parameters["sp"]
+        if "learnrate" in parameters:
+            self.learnrate      = parameters["learnrate"]   
+
+
+ 
         ##the w and b for instances
         structure = [ self.num_feature ]
         for i in xrange(len(self.sizes)):
@@ -390,7 +396,9 @@ class Model:
         #import cProfile, pstats, StringIO
         #pr =  cProfile.Profile()
         #pr.enable()
- 
+         
+
+
         self.check_dimension(x, y )
         self.bp(x, y, idx)
         self.printself()
@@ -400,6 +408,9 @@ class Model:
         self.printself()
         self.rater.update_after_paramupdate(self)
         
+  
+
+
         #pr.disable()
         #s = StringIO.StringIO()
         #sortby = 'cumulative'
@@ -489,8 +500,10 @@ class Model:
         #---------------------------------------------------
         #compute the grad
         #---------------------------------------------------
-        grad_type    = self.output_active \
-                       + "_" + self.loss
+        #grad_type    = self.output_active \
+        #               + "_" + self.loss
+        
+        grad_type    = actlo2grad(self.output_active, self.loss);
         output_grad  = grad( output, y, grad_type )
         #print "type(output_grad",type(output_grad),sp.isspmatrix(output_grad) 
 
@@ -569,7 +582,7 @@ class Model:
         #pr =  cProfile.Profile()
         #pr.enable()
         learn_rate   = self.learnrate
-        l2_lambda       = self.l2_lambda
+        l2_lambda    = self.l2_lambda
         n_layer      = len(self.w)
         for i in xrange(n_layer):
         #    print type(self.grad_w[i])

@@ -2,8 +2,6 @@
 import sys
 import os
 path  = os.path.split(os.path.realpath(__file__))[0]
-sys.path.append(path + "/utils/Python_Utils")
-sys.path.append(path + "/../utils/Python_Utils")
 
 from latent_factor import *
 from arffio        import *
@@ -14,6 +12,7 @@ import scipy.sparse as sp
 import sampler
 import random
 import time
+from common import *
 
 np.random.seed(0)
 random.seed(0)
@@ -21,12 +20,24 @@ random.seed(0)
 def printUsages():
     print "Usage: train.py [options] train_file model_file"
     print "options"
-    print "   -l2_lambda: the regularization coefficient (default 0.001)"
-    print "   -struct: the architecture of instance represnation learner: [num_node_layer1,num_node_layer2,...] (default [])"
-    print "   -batch: batch, the number of instances in a batch (default 100)"
-    print "   -niter: num of iter, the number of iterations (default 20)"
-    print "   -num_factor: the number of inner factors"
-    print "   -sample_ratio: the ratio of sampling"
+    print "  -h  hidden_space_dimension: set the hidden space dimension (default 100)"
+    print "  -ha hidden_activation: set the hidden activation(default 0)"
+    print "       0 -- tanh"
+    print "       1 -- linear"
+    print "  -oa output_activation: set the output activation(default 0)"
+    print "       0 -- sgmoid"
+    print "       1 -- linear"
+    print "  -l  loss_function: set the loss function(default 0)"
+    print "       0 -- negative_log_likelihood"
+    print "       1 -- least_sqaure" 
+    print "  -l2 l2_regularization: set the l2 regularization(default 0.001)"
+    print "  -b  batch_size: set the batch size (default 100)"
+    print "  -i  number_of_iter: set the number of iteration(default 10)"
+    print "  -st using_sampling: set whether using the sampling scheme(default 1)"
+    print "       0 -- not using sampling scheme"
+    print "       1 -- using sampling scheme"
+    print "  -sr sampling_ratio: set the sampling ratio(default 5)"   
+    print "  -sp sparse_threhold: set the threhold (default 0.01)"
 
 def parseParameter(argv):
     if len(argv) < 3: #at least 4 paramters: train.py train_file model_file
@@ -36,58 +47,60 @@ def parseParameter(argv):
     parameters = dict()
     parameters["train_file"]   = argv[len(argv) - 2]
     parameters["model_file"]   = argv[len(argv) - 1]
-    parameters["l2_lambda"]       = 0.001
-    parameters["struct"]       = [] 
-    parameters["batch"]        = 10
-    parameters["niter"]        = 20
-    parameters["num_factor"]   = 50 
-    parameters["sample_ratio"] = 5 
-
-    ##not open option yet
-    parameters["mem"]          = 1
-    parameters["sample_type"]  = "instance_sample"
-    parameters["sparse_thr"]   = 0.01
+    #structure parameter
+    parameters["h"]            = 100
+    parameters["ha"]           = act.tanh
+    parameters["oa"]           = act.sgmoid
+   
+    #training parameter
+    parameters["l"]            = lo.negative_log_likelihood
+    parameters["l2"]           = 0.001
+    parameters["b"]            = 10
+    parameters["i"]            = 20
+    parameters["st"]           = st.instance_sampler
+    parameters["sr"]           = 5 
+    parameters["sp"]           = 0.01
  
+    parameters["sizes"]        = []
+    parameters["mem"]          = 1
+
+
     i = 1
     while i + 1 < len(argv) - 2:
-        if  "-l2_lambda" == argv[i]:
-            parameters["l2_lambda"]   = float(argv[i+1])
-            i += 2
-        elif "-struct" == argv[i]:
-            line  = argv[i+1]
-            line  = line.strip()
-            line  = line[1:len(line)-1]
-            line  = line.strip()
-            if "" != line:
-                eles  = line.split(",")
-                sizes = map(int, eles)
-                parameters["struct"] =  sizes
-            i += 2
-        elif "-batch" == argv[i]:
-            parameters["batch"] = int(argv[i+1]) 
-            i += 2
-        elif "-niter" == argv[i]:
-            parameters["niter"] = int(argv[i+1])   
-            i += 2
-        elif "-num_factor" == argv[i]:
-            parameters["num_factor"] = int(argv[i+1])
-            i += 2
-        elif "-sample_ratio" == argv[i]:
-            parameters["sample_ratio"] = float(argv[i+1])
-            i += 2
+        if  "-h" == argv[i]:
+            parameters["h"]     = int(argv[i+1])
+        elif "-ha" == argv[i]:
+            parameters["ha"]    = ha_map[int(argv[i+1])]
+        elif "-oa" == argv[i]:
+            parameters["oa"]    = oa_map[int(argv[i+1])]
+            print parameters["oa"]
+        elif "-l" == argv[i]:
+            parameters["l"]     = lo_map[int(argv[i+1])]
+        elif  "-l2" == argv[i]:
+            parameters["l2"]    = float(argv[i+1])
+        elif "-b" == argv[i]:
+            parameters["b"]     = int(argv[i+1]) 
+        elif "-i" == argv[i]:
+            parameters["i"]     = int(argv[i+1])   
+        elif "-st" == argv[i]:
+            parameters["st"]    = int(argv[i+1]);
+        elif "-sr" == argv[i]:
+            parameters["sr"]    = float(argv[i+1])
+        elif "-sp" == argv[i]:
+            parameters["sp"]    = float(argv[i+1])
         else:
             print argv[i]
             printUsages()
             exit(1)
-        
+        i += 2 
 
     return parameters
 
 def train_mem(train_file, parameters):
     model  = Model(parameters)
-    batch  = parameters["batch"]
-    niter  = parameters["niter"]
-    sample = sampler.get_sample(parameters)   
+    batch  = parameters["b"]
+    niter  = parameters["i"]
+    sample = sampler.get_sampler(parameters)   
     logger = logging.getLogger(Logger.project_name)
     logger.info("Model initialization done")
 
@@ -152,9 +165,9 @@ def train_mem(train_file, parameters):
 
 def train(train_file, parameters):
     model  = Model(parameters)
-    batch  = parameters["batch"]
-    niter  = parameters["niter"]
-    sample = sampler.get_sample(parameters)
+    batch  = parameters["b"]
+    niter  = parameters["i"]
+    sample = sampler.get_sampler(parameters)
     logger = logging.getLogger(Logger.project_name)
 
 
@@ -198,10 +211,10 @@ def main(argv):
     mem         = parameters["mem"]
 
     # read a instance to know the number of features and labels
-    train_reader = SvmReader(train_file, 1)
-    x, y, has_next = train_reader.read()
-    parameters["num_feature"] = x.shape[1]
-    parameters["num_label"]   = y.shape[1]
+    train_reader       = SvmReader(train_file, 1)
+    x, y, has_next     = train_reader.read()
+    parameters["nx"]   = x.shape[1]
+    parameters["ny"]   = y.shape[1]
     train_reader.close()
 
     if 1 == mem:
