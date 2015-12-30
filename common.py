@@ -17,11 +17,9 @@ grad = Enum(["sgmoid_negative_log_likelihood",\
              "tanh",\
              "linear"]);
 
-
 ha_map = {0:act.tanh,   1:act.linear};
 oa_map = {0:act.sgmoid, 1:act.linear};
 lo_map = {0:lo.negative_log_likelihood, 1:lo.least_square}
-
 
 def actlo2grad(actid, loid):
     if actid == act.sgmoid and loid == lo.negative_log_likelihood:
@@ -38,5 +36,11 @@ def actlo2grad(actid, loid):
 
 #ha = Enum(["tanh","linear"]);
 #oa = Enum(["sgmoid","linear"]);
-op = Enum(["gradient","alternative_least_square"]);
-st = Enum(["full_sampler","instance_sampler"]);
+op     = Enum(["gradient","alternative_least_square"]);
+op_map = {0:op.gradient, 1:op.alternative_least_square}
+
+st     = Enum(["full_sampler","instance_sampler"]);
+st_map = {0:st.full_sampler, 1:st.instance_sampler} 
+
+m      = Enum(["internal_memory", "external_memory"])
+m_map  = {0: m.internal_memory, 1:m.external_memory} 

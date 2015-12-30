@@ -24,11 +24,13 @@ class LatentFactorTester1(unittest.TestCase):
         self.parameters["l"]             = lo.negative_log_likelihood;
         self.parameters["ins_lambda"]    = 0.001;
         self.parameters["label_lambda"]  = 0.001; 
+        self.parameters["op"]            = op.alternative_least_square
     def params(self):
         model = Model(self.parameters);
         self.assertEquals(model.hidden_active, "linear")        
         self.assertEquals(model.loss,          "negative_log_likelihood")
-        
+        self.assertEquals(model.optimization,  "alternative_least_square")
+        self.assertEquals(model.output_active, act.sgmoid)
 
 class LatentFactorTester(unittest.TestCase):
     def setUp(self):
@@ -120,6 +122,7 @@ class LatentFactorTester(unittest.TestCase):
 
     def test_notfull_bp(self):
         return        
+
 
     def test_bp(self):
         model = self.init_model();

@@ -22,18 +22,12 @@ class Sampler:
     def update(self, y):
         nocode = 0
     def sample(self, y):
-        return sp.lil_matrix(y.shape)
+        nocode = 0
 
 class FullSampler(Sampler):
     def sample(self, y):
-        return sp.lil_matrix(y.shape) + 1
+        return sp.csr_matrix(np.ones(y.shape))
      
-    def update(self, y):
-        lili = 0
-    def predict(self, y):
-        lili = 0
-    def sample(self, y):
-        lili = 0        
 
 class InstanceSampler(Sampler):
     def __init__(self, parameters):
