@@ -11,6 +11,7 @@ from active       import *
 from threshold    import *
 import numpy as np
 import scipy.sparse as sp
+import scipy.sparse.linalg as splinalg
 import math
 import pickle
 import random
@@ -22,6 +23,7 @@ class Model:
     def __init__(self):
         nonparamter = 0 
     def __init__(self,  parameters):
+        self.params        = parameters;
 
         #struct param
         self.num_feature   = 1 ## this param must be provided
@@ -33,11 +35,10 @@ class Model:
         
         #train param
         self.loss          = lo.negative_log_likelihood
-        self.learnrate     = 0.1
         self.l2_lambda     = 0.001
         self.sparse_thr    = 1
         self.optimization  = op.gradient
-        self.svdk          = 100
+        self.svdsk         = 500
 	
         if "nx" in parameters:
             self.num_feature    = parameters["nx"]
@@ -58,10 +59,6 @@ class Model:
             self.l2_lambda      = parameters["l2"]
         if "sp" in parameters:
             self.sparse_thr     = parameters["sp"]
-        if "op" in parameters:
-            self.op             = parameters["op"]
-        if "learnrate" in parameters:
-            self.learnrate      = parameters["learnrate"]   
 
 
  
@@ -97,13 +94,7 @@ class Model:
 
         self.grad_lw  = np.zeros(self.lw.shape)
         self.grad_lb  = np.zeros(self.lb.shape)
-        ##at the end, choose the learnrater
-        #self.rater = LearnRate(self)
-        self.rater = AdaGrad(self)
-        #self.rater = AdaDelta(self)        
             
-        ## the threshold
-        self.thrsel = ThresholdSel()    
         
     def save(self,filename):
         wf = open(filename,"w")
@@ -299,12 +290,14 @@ class Model:
     
         
     def al_update(self, x, y, idx):
+        self.b[0] = np.zeros(self.b[0].shape)
+        self.lb   = np.zeros(self.lb.shape)
+
         if lo.least_square != self.loss:
             logger = logging.getLogger(Logger.project_name)
             logger.error("loss != least_square when alternative_least_square applied!")
             raise Exception("loss != least_square when alternative_least_square applied!")
-        
-        if act.linear == self.ha:
+        if act.linear != self.params["ha"]:
             logger = logging.getLogger(Logger.project_name)
             logger.error("hidden_activation != linear "
                          "when alternative_least_square applied!")
@@ -316,33 +309,56 @@ class Model:
             logger.error("using sampling scheme when alternative_least_square applied!")
             raise Exception("using sampling scheme when alternative_least_square applied!")
             
-        instance = None;         
+        instance   = None;         
+        num_ins    = x.shape[0]
+        num_fea    = self.w[0].shape[0]
+        num_hidden = self.w[0].shape[1]
+        num_label  = self.lw.shape[1]
+
         if sp.isspmatrix(x):
             instance = x * self.w[0]
         else:
             instance = np.dot(x, self.w[0])
-                        
-
+        diags       = np.ones(num_hidden) * math.sqrt(self.params["l2"])
+        lambda_ins  = np.vstack([instance, np.diag(diags)])           
+       
         if sp.isspmatrix(y):
-            perfect_instance = y * np.linagl.pinv(self.lw)
-            self.lw          = y * np.linagl.pinv(instance) - self.l2_lambda * self.lw       
+            perfect_ins        = y * np.linalg.pinv(self.lw)
         else:
-            perfect_instance = np.dot(y, np.linalg.pinv(self.lw)) 
-            self.lw          = np.dot(y, np.linalg.pinv(instance)) - self.l2_lambda * self.lw
-
+            perfect_ins        = np.dot(y, np.linalg.pinv(self.lw))
+        part                 = np.zeros((num_fea,num_hidden))
+        lambda_perfect_ins   = np.vstack([perfect_ins, part])       
         
+        if sp.isspmatrix(y):
+            part             = sp.csr_matrix(([0],([0],[0])),shape=(num_hidden,num_label))
+            lambda_y         = sp.vstack([y, part]) 
+            self.lw          = np.linalg.pinv(lambda_ins) * lambda_y  
+        else:
+            part             = np.zeros((num_hidden, num_label))
+            lambda_y         = np.vstack([y, part])             
+            self.lw          = np.dot(np.linalg.pinv(lambda_ins), lambda_y)
+
         if sp.isspmatrix(x):
-            (m,n)     = x.shape
-            k         = min(min(m,n),self.svdsk)
-            [u,d,v]   =  sp.linalg.svds(x, k)
+            diags     = np.ones(num_fea) * math.sqrt(self.params["l2"])
+            lambda_x  = sp.vstack([x, sp.diags(diags,0,format = 'csr')])
+            k         = min(min(num_ins-1, num_fea-1), self.svdsk - 1)
+            [u,d,v]   = splinalg.svds(lambda_x, k)
+            e         = 0.000000001
+            if d[0] < e:
+                for i in xrange(len(d)-1):
+                    if d[i] >= e:break
+                u = u[:,i:k]
+                d = d[i:k]
+                v = v[i:k,:]
             ut        = np.transpose(u)
+            d         = 1.0 / d 
             dd        = np.diag(d)
             vt        = np.transpose(v)
-            self.w[0] = np.dot(np.dot(vt,dd), np.dot(ut,perfect_instance)) - self.l2_lambda * self.w[0]  
+            self.w[0] = np.dot(np.dot(vt,dd), np.dot(ut,lambda_perfect_ins)) 
         else:
-            self.w[0] = np.dot(np.linalg.pinv(x), pefect_instance) - self.l2_lambda * self.w[0]
-    
-
+            diags     = np.ones(num_fea) * math.sqrt(self.params["l2"])  
+            lambda_x  = np.vstack([x, np.diag(diags)])
+            self.w[0] = np.dot(np.linalg.pinv(lambda_x), lambda_perfect_ins) 
 
     
     def ff(self, x):
@@ -507,7 +523,7 @@ class Model:
         #import cProfile, pstats, StringIO
         #pr =  cProfile.Profile()
         #pr.enable()
-        learn_rate   = self.learnrate
+        learn_rate   = self.params["r"]
         l2_lambda    = self.l2_lambda
         n_layer      = len(self.w)
         for i in xrange(n_layer):

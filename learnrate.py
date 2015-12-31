@@ -20,7 +20,7 @@ import types
 class LearnRate:
     def __init__(self, model):
         ##the w and b for instances
-        learnrate = float(model.learnrate)
+        learnrate = float(model.params["r"])
         self.rate_b = []
         self.rate_w = []
         self.nonzero = dict()
@@ -59,7 +59,7 @@ class AdaGrad(LearnRate):
     def __init__(self, model):
         LearnRate.__init__(self, model)        
         #set the initial_rate
-        self.initial_rate = float(model.learnrate)
+        self.initial_rate = float(model.params["r"])
 
         ##the w and b for instances
         self.ada_b = []

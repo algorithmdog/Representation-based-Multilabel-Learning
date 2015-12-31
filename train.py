@@ -5,6 +5,8 @@ path  = os.path.split(os.path.realpath(__file__))[0]
 
 from latent_factor import *
 from arffio        import *
+from common        import *
+import copy
 import logging, Logger
 import pickle
 import numpy as np
@@ -44,6 +46,7 @@ def printUsages():
     print "  -m  using_external_memory: set using the external memory (default 0). Now you can't use external memory and we will implement the function as soon as possible"
     print "       0 -- not using external memory"
     print "       1 -- using external memory"
+    print "  -r  learning_rate: set the learning rate (default 0.001)"
 
 
 def parseParameter(argv):
@@ -51,27 +54,9 @@ def parseParameter(argv):
         printUsages()
         exit(1)
 
-    parameters = dict()
+    parameters = copy.deepcopy(default_params)
     parameters["train_file"]   = argv[len(argv) - 2]
     parameters["model_file"]   = argv[len(argv) - 1]
-    #structure parameter
-    parameters["h"]            = 100
-    parameters["ha"]           = act.tanh
-    parameters["oa"]           = act.sgmoid
-   
-    #training parameter
-    parameters["l"]            = lo.negative_log_likelihood
-    parameters["l2"]           = 0.001
-    parameters["b"]            = 10
-    parameters["i"]            = 20
-    parameters["st"]           = st.instance_sampler
-    parameters["sr"]           = 5 
-    parameters["sp"]           = 0.01
-    parameters["op"]           = op.gradient
-    parameters["m"]            = m.internal_memory    
- 
-    parameters["sizes"]        = []
-
 
     i = 1
     while i + 1 < len(argv) - 2:
@@ -81,7 +66,6 @@ def parseParameter(argv):
             parameters["ha"]    = ha_map[int(argv[i+1])]
         elif "-oa" == argv[i]:
             parameters["oa"]    = oa_map[int(argv[i+1])]
-            print parameters["oa"]
         elif "-l" == argv[i]:
             parameters["l"]     = lo_map[int(argv[i+1])]
         elif  "-l2" == argv[i]:
@@ -100,6 +84,8 @@ def parseParameter(argv):
             parameters["op"]    = op_map[int(argv[i+1])] 
         elif "-m"  == argv[i]:
             parameters["m"]     = m_map[int(argv[i+1])]
+        elif "-r"  == argv[i]:
+            parameters["r"]     = float(argv[i+1])
         else:
             print argv[i]
             printUsages()
@@ -132,8 +118,7 @@ def checkParamValid(param):
     return True;
 
 
-def train_internal(train_file, parameters):
-    model  = Model(parameters)
+def train_internal(model, train_file, parameters):
     batch  = parameters["b"]
     niter  = parameters["i"]
     sample = sampler.get_sampler(parameters)   
@@ -176,10 +161,14 @@ def train_internal(train_file, parameters):
 #               print "update",s.getvalue()
             
             logger.info("The %d-th iteration completes"%(iter1+1)); 
-    elif op.alternative_least_square == paramters["op"]:
+    elif op.alternative_least_square == parameters["op"]:
+        model.b[0] = np.zeros(model.b[0].shape)
+        model.lb   = np.zeros(model.lb.shape)
+
         for iter1 in xrange(niter):
             model.al_update(x, y, None)
             logger.info("The %d-th iteration completes"%(iter1+1));
+
     else:
         logger.error("Invalid optimization scheme (%s)"%paramters["op"])
 
@@ -204,8 +193,8 @@ def train_internal(train_file, parameters):
     return model
 
 
-def train_external(train_file, parameters):
-    model  = Model(parameters)
+def train_external(model, train_file, parameters):
+
     batch  = parameters["b"]
     niter  = parameters["i"]
     sample = sampler.get_sampler(parameters)
@@ -257,10 +246,16 @@ def main(argv):
     parameters["ny"]   = y.shape[1]
     train_reader.close()
 
+    model        = Model(parameters)
+    rater        = AdaGrad(model)
+    model.rater  = rater
+    thrsel       = ThresholdSel()
+    model.thrsel = thrsel
+
     if m.internal_memory == parameters["m"]:
-        model = train_internal(train_file, parameters) 
+        model = train_internal(model, train_file, parameters) 
     elif m.external_memory == parameters["m"]:
-        model = train_external(train_file, parameters)    
+        model = train_external(model, train_file, parameters)    
     else:
         logger = logging.getLogger(Logger.project_name)
         logger.error("Invalid m param")

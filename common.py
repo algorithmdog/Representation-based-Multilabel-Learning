@@ -34,8 +34,6 @@ def actlo2grad(actid, loid):
         raise Exception("Activation (%s) and loss (%s) lead to no grad"%(actname,lossname))
 
 
-#ha = Enum(["tanh","linear"]);
-#oa = Enum(["sgmoid","linear"]);
 op     = Enum(["gradient","alternative_least_square"]);
 op_map = {0:op.gradient, 1:op.alternative_least_square}
 
@@ -44,3 +42,25 @@ st_map = {0:st.full_sampler, 1:st.instance_sampler}
 
 m      = Enum(["internal_memory", "external_memory"])
 m_map  = {0: m.internal_memory, 1:m.external_memory} 
+
+
+####params 
+default_params = dict()
+default_params["h"]            = 100
+default_params["ha"]           = act.tanh
+default_params["oa"]           = act.sgmoid
+
+default_params["l"]            = lo.negative_log_likelihood
+default_params["l2"]           = 0.001
+default_params["b"]            = 10
+default_params["i"]            = 20
+default_params["st"]           = st.instance_sampler
+default_params["sr"]           = 5 
+default_params["sp"]           = 0.01
+default_params["op"]           = op.gradient
+default_params["m"]            = m.internal_memory    
+default_params["r"]            = 0.1
+
+default_params["sizes"]        = []
+
+
