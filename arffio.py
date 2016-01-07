@@ -107,8 +107,11 @@ class SvmReader:
                     xc.append(int(kv[0]))
                     xd.append(float(kv[1]))
         
-        return sp.csr_matrix((xd,(xr,xc)),(num_ins,self.num_feature)), sp.csr_matrix((yd,(yr,yc)),(num_ins,self.num_label))
+        xi =  sp.csr_matrix((xd,(xr,xc)),(num_ins,self.num_feature))
+        yi = sp.csr_matrix((yd,(yr,yc)),(num_ins,self.num_label))
     
+        return xi, yi
+
     def full_read(self):
         lines = []
         for line in self.file:

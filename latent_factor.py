@@ -23,6 +23,7 @@ class Model:
     def __init__(self):
         nonparamter = 0 
     def __init__(self,  parameters):
+
         self.params        = parameters;
 
         #struct param
@@ -38,7 +39,7 @@ class Model:
         self.l2_lambda     = 0.001
         self.sparse_thr    = 1
         self.optimization  = op.gradient
-        self.svdsk         = 500
+        self.svdsk         = 10000000
 	
         if "nx" in parameters:
             self.num_feature    = parameters["nx"]
@@ -95,6 +96,11 @@ class Model:
         self.grad_lw  = np.zeros(self.lw.shape)
         self.grad_lb  = np.zeros(self.lb.shape)
             
+
+        #variable for al
+        self.lambda_x = None
+        self.lambda_y = None
+
         
     def save(self,filename):
         wf = open(filename,"w")
@@ -293,6 +299,7 @@ class Model:
         self.b[0] = np.zeros(self.b[0].shape)
         self.lb   = np.zeros(self.lb.shape)
 
+
         if lo.least_square != self.loss:
             logger = logging.getLogger(Logger.project_name)
             logger.error("loss != least_square when alternative_least_square applied!")
@@ -315,6 +322,26 @@ class Model:
         num_hidden = self.w[0].shape[1]
         num_label  = self.lw.shape[1]
 
+
+        ###init the al params
+        if self.lambda_x is None:
+            if sp.isspmatrix(x):
+                diags          = np.ones(num_fea) * math.sqrt(self.params["l2"])
+                self.lambda_x  = sp.vstack([x, sp.diags(diags,0,format = 'csr')])
+            else:
+                diags          = np.ones(num_fea) * math.sqrt(self.params["l2"])  
+                self.lambda_x  = np.vstack([x, np.diag(diags)])
+        
+        if self.lambda_y is None:
+            if sp.isspmatrix(y):
+                part          = sp.csr_matrix(([0],([0],[0])), shape=(num_hidden,num_label))
+                self.lambda_y = sp.vstack([y, part])
+            else:
+                part          = np.zeros((num_hidden, num_label))
+                self.lambda_y = np.vstack([y, part])
+
+
+        ##start
         if sp.isspmatrix(x):
             instance = x * self.w[0]
         else:
@@ -322,6 +349,20 @@ class Model:
         diags       = np.ones(num_hidden) * math.sqrt(self.params["l2"])
         lambda_ins  = np.vstack([instance, np.diag(diags)])           
        
+        #if sp.isspmatrix(y):
+        #    perfect_ins        = y * np.linalg.pinv(self.lw)
+        #else:
+        #    perfect_ins        = np.dot(y, np.linalg.pinv(self.lw))
+        #part                 = np.zeros((num_fea,num_hidden))
+        #lambda_perfect_ins   = np.vstack([perfect_ins, part])       
+       
+ 
+        if sp.isspmatrix(y):
+            self.lw          = np.linalg.pinv(lambda_ins) * self.lambda_y  
+        else:
+            self.lw          = np.dot(np.linalg.pinv(lambda_ins), self.lambda_y)
+
+
         if sp.isspmatrix(y):
             perfect_ins        = y * np.linalg.pinv(self.lw)
         else:
@@ -329,20 +370,11 @@ class Model:
         part                 = np.zeros((num_fea,num_hidden))
         lambda_perfect_ins   = np.vstack([perfect_ins, part])       
         
-        if sp.isspmatrix(y):
-            part             = sp.csr_matrix(([0],([0],[0])),shape=(num_hidden,num_label))
-            lambda_y         = sp.vstack([y, part]) 
-            self.lw          = np.linalg.pinv(lambda_ins) * lambda_y  
-        else:
-            part             = np.zeros((num_hidden, num_label))
-            lambda_y         = np.vstack([y, part])             
-            self.lw          = np.dot(np.linalg.pinv(lambda_ins), lambda_y)
+
 
         if sp.isspmatrix(x):
-            diags     = np.ones(num_fea) * math.sqrt(self.params["l2"])
-            lambda_x  = sp.vstack([x, sp.diags(diags,0,format = 'csr')])
             k         = min(min(num_ins-1, num_fea-1), self.svdsk - 1)
-            [u,d,v]   = splinalg.svds(lambda_x, k)
+            [u,d,v]   = splinalg.svds(self.lambda_x, k)
             e         = 0.000000001
             if d[0] < e:
                 for i in xrange(len(d)-1):
@@ -356,9 +388,8 @@ class Model:
             vt        = np.transpose(v)
             self.w[0] = np.dot(np.dot(vt,dd), np.dot(ut,lambda_perfect_ins)) 
         else:
-            diags     = np.ones(num_fea) * math.sqrt(self.params["l2"])  
-            lambda_x  = np.vstack([x, np.diag(diags)])
-            self.w[0] = np.dot(np.linalg.pinv(lambda_x), lambda_perfect_ins) 
+            self.w[0] = np.dot(np.linalg.pinv(self.lambda_x), lambda_perfect_ins) 
+
 
     
     def ff(self, x):

@@ -59,7 +59,7 @@ class ALLatentFactorTester(unittest.TestCase):
             for j in xrange(model.lw.shape[1]):
                 self.assertTrue(abs(expected_lw[i][j] - model.lw[i][j]) < e)
         
-        expected_w  = np.array([[8 + 1.0/3],[8 + 1.0/3]])
+        expected_w  = np.array([[41.668 + 0.001/3.0],[41.668 + 0.001/3.0]])
         for i in xrange(model.w[0].shape[0]):
             for j in xrange(model.w[0].shape[1]):
                 self.assertTrue(abs(expected_w[i][j] - model.w[0][i][j]) < e)
@@ -83,7 +83,7 @@ class ALLatentFactorTester(unittest.TestCase):
             for j in xrange(model.lw.shape[1]):
                 self.assertTrue(abs(expected_lw[i][j] - model.lw[i][j]) < e)
 
-        expected_w  = np.array([[8 + 1.0/3],[8 + 1.0/3]])
+        expected_w  = np.array([[41.668 + 0.001/3.0],[41.668 + 0.001/3.0]])
         for i in xrange(model.w[0].shape[0]):
             for j in xrange(model.w[0].shape[1]):
                 self.assertTrue(abs(expected_w[i][j] - model.w[0][i][j]) < e)

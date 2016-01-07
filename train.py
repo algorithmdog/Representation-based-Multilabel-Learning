@@ -126,7 +126,7 @@ def train_internal(model, train_file, parameters):
     logger.info("Model initialization done")
 
     train_reader = SvmReader(train_file)
-    x, y = train_reader.full_read()
+    x, y   = train_reader.full_read() 
     num, _ = y.shape
     logger.info("Training data loading done")
 
