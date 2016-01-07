@@ -1,10 +1,8 @@
 #!/bin/python
 import sys;
 import os;
-path  = os.path.split(os.path.realpath(__file__))[0];
-sys.path.append(path + "/utils/Python_Utils");
-sys.path.append(path + "/../utils/Python_Utils");
 
+from common        import *
 from latent_factor import *;
 import logging, Logger;
 import arffio;

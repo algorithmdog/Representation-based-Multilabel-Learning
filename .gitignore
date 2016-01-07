@@ -1,9 +1,7 @@
-utils
 data
+utils
+*.model
 *.log
 *.pyc
-*.arff
-*.model
-nohup.out
+result
 experiment
-

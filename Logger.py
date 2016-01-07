@@ -2,7 +2,7 @@
 import logging;
 import sys;
 
-project_name = "multi_label";
+project_name = "multilabel";
 
 instance = logging.getLogger(project_name);
 instance.setLevel(logging.INFO);

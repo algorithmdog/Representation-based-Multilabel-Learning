@@ -2,11 +2,11 @@
 import sys
 import os
 path  = os.path.split(os.path.realpath(__file__))[0]
-sys.path.append(path + "/utils/Python_Utils")
-sys.path.append(path + "/../utils/Python_Utils")
 
 from latent_factor import *
 from arffio        import *
+from common        import *
+import copy
 import logging, Logger
 import pickle
 import numpy as np
@@ -14,6 +14,7 @@ import scipy.sparse as sp
 import sampler
 import random
 import time
+from common import *
 
 np.random.seed(0)
 random.seed(0)
@@ -21,114 +22,156 @@ random.seed(0)
 def printUsages():
     print "Usage: train.py [options] train_file model_file"
     print "options"
-    print "   -l2_lambda: the regularization coefficient (default 0.001)"
-    print "   -struct: the architecture of instance represnation learner: [num_node_layer1,num_node_layer2,...] (default [])"
-    print "   -batch: batch, the number of instances in a batch (default 100)"
-    print "   -niter: num of iter, the number of iterations (default 20)"
-    print "   -num_factor: the number of inner factors"
-    print "   -sample_ratio: the ratio of sampling"
+    print "  -h  hidden_space_dimension: set the hidden space dimension (default 100)"
+    print "  -ha hidden_activation: set the hidden activation(default 0)"
+    print "       0 -- tanh"
+    print "       1 -- linear"
+    print "  -oa output_activation: set the output activation(default 0)"
+    print "       0 -- sgmoid"
+    print "       1 -- linear"
+    print "  -l  loss_function: set the loss function(default 0)"
+    print "       0 -- negative_log_likelihood"
+    print "       1 -- least_sqaure" 
+    print "  -l2 l2_regularization: set the l2 regularization(default 0.001)"
+    print "  -b  batch_size: set the batch size (default 100)"
+    print "  -i  number_of_iter: set the number of iteration(default 10)"
+    print "  -st using_sampling: set whether using the sampling scheme(default 1)"
+    print "       0 -- not using sampling scheme"
+    print "       1 -- using sampling scheme"
+    print "  -sr sampling_ratio: set the sampling ratio(default 5)"   
+    print "  -sp sparse_threhold: set the threhold (default 0.01)"
+    print "  -op optimization_scheme: set the optimizaiton scheme (default 0)"
+    print "       0 -- gradient"
+    print "       1 -- alternative_least_square"
+    print "  -m  using_external_memory: set using the external memory (default 0). Now you can't use external memory and we will implement the function as soon as possible"
+    print "       0 -- not using external memory"
+    print "       1 -- using external memory"
+    print "  -r  learning_rate: set the learning rate (default 0.001)"
+
 
 def parseParameter(argv):
     if len(argv) < 3: #at least 4 paramters: train.py train_file model_file
         printUsages()
         exit(1)
 
-    parameters = dict()
+    parameters = copy.deepcopy(default_params)
     parameters["train_file"]   = argv[len(argv) - 2]
     parameters["model_file"]   = argv[len(argv) - 1]
-    parameters["l2_lambda"]       = 0.001
-    parameters["struct"]       = [] 
-    parameters["batch"]        = 10
-    parameters["niter"]        = 20
-    parameters["num_factor"]   = 50 
-    parameters["sample_ratio"] = 5 
 
-    ##not open option yet
-    parameters["mem"]          = 1
-    parameters["sample_type"]  = "instance_sample"
-    parameters["sparse_thr"]   = 0.01
- 
     i = 1
     while i + 1 < len(argv) - 2:
-        if  "-l2_lambda" == argv[i]:
-            parameters["l2_lambda"]   = float(argv[i+1])
-            i += 2
-        elif "-struct" == argv[i]:
-            line  = argv[i+1]
-            line  = line.strip()
-            line  = line[1:len(line)-1]
-            line  = line.strip()
-            if "" != line:
-                eles  = line.split(",")
-                sizes = map(int, eles)
-                parameters["struct"] =  sizes
-            i += 2
-        elif "-batch" == argv[i]:
-            parameters["batch"] = int(argv[i+1]) 
-            i += 2
-        elif "-niter" == argv[i]:
-            parameters["niter"] = int(argv[i+1])   
-            i += 2
-        elif "-num_factor" == argv[i]:
-            parameters["num_factor"] = int(argv[i+1])
-            i += 2
-        elif "-sample_ratio" == argv[i]:
-            parameters["sample_ratio"] = float(argv[i+1])
-            i += 2
+        if  "-h" == argv[i]:
+            parameters["h"]     = int(argv[i+1])
+        elif "-ha" == argv[i]:
+            parameters["ha"]    = ha_map[int(argv[i+1])]
+        elif "-oa" == argv[i]:
+            parameters["oa"]    = oa_map[int(argv[i+1])]
+        elif "-l" == argv[i]:
+            parameters["l"]     = lo_map[int(argv[i+1])]
+        elif  "-l2" == argv[i]:
+            parameters["l2"]    = float(argv[i+1])
+        elif "-b" == argv[i]:
+            parameters["b"]     = int(argv[i+1]) 
+        elif "-i" == argv[i]:
+            parameters["i"]     = int(argv[i+1])   
+        elif "-st" == argv[i]:
+            parameters["st"]    = st_map[int(argv[i+1])];
+        elif "-sr" == argv[i]:
+            parameters["sr"]    = float(argv[i+1])
+        elif "-sp" == argv[i]:
+            parameters["sp"]    = float(argv[i+1])
+        elif "-op" == argv[i]:
+            parameters["op"]    = op_map[int(argv[i+1])] 
+        elif "-m"  == argv[i]:
+            parameters["m"]     = m_map[int(argv[i+1])]
+        elif "-r"  == argv[i]:
+            parameters["r"]     = float(argv[i+1])
         else:
             print argv[i]
             printUsages()
             exit(1)
-        
+        i += 2 
+
+    if False == checkParamValid(parameters):
+        printUsages()
+        exit(1)    
 
     return parameters
 
-def train_mem(train_file, parameters):
-    model  = Model(parameters)
-    batch  = parameters["batch"]
-    niter  = parameters["niter"]
-    sample = sampler.get_sample(parameters)   
+def checkParamValid(param):
+    if param["op"] == op.alternative_least_square:
+        if act.linear != param["ha"] or act.linear != param["oa"]:
+            print "alternative_least_square optimization requires linear "\
+                  "hidden_activation and output_activation"
+            return False;
+        if  m.internal_memory != param["m"]:
+            print "alternative_least_square optimization requires not to use external_memory"
+            return False;
+
+    if lo.negative_log_likelihood == param["l"] and act.sgmoid != param["oa"]:
+            print "negative_log_likelihood loss requires sgmoid output_activation"      
+            return False;
+    if lo.least_square == param["l"] and act.linear != param["oa"]:
+            print "least_square loss requires linear output_activation"
+            return False;
+
+    return True;
+
+
+def train_internal(model, train_file, parameters):
+    batch  = parameters["b"]
+    niter  = parameters["i"]
+    sample = sampler.get_sampler(parameters)   
     logger = logging.getLogger(Logger.project_name)
     logger.info("Model initialization done")
 
     train_reader = SvmReader(train_file)
-    x, y = train_reader.full_read()
+    x, y   = train_reader.full_read() 
     num, _ = y.shape
-    #if None == sample: idx_y = sp.csr_matrix(np.ones(y.shape))
-    #else: idx_y = sp.csr_matrix(sample.sample(y))
     logger.info("Training data loading done")
 
     sample.update(y)
     logger.info("Sampling initialization done")
-
     start_time = time.time()
-    for iter1 in xrange(niter):
-        start = 0
-        end = batch
-        while start < num:
-            #logger.info("start = %d, end = %d\n"%(start, end))
-            if end > num:   end = num
-            
-#            import cProfile, pstats, StringIO
-#            pr =  cProfile.Profile()
-#            pr.enable()
 
-            batch_x = x[start:end, :]
-            batch_y = y[start:end, :] 
-            batch_i = sample.sample(batch_y)
-            model.update(batch_x, batch_y, batch_i)      
-
-            start += batch;
-            end += batch;
-#            pr.disable()
-#            s = StringIO.StringIO()
-#            sortby = 'cumulative'
-#            ps = pstats.Stats(pr, stream = s).sort_stats(sortby)
-#            ps.print_stats()
-#            print "update",s.getvalue()
+    if op.gradient == parameters["op"]:
+        for iter1 in xrange(niter):
+            start = 0
+            end = batch
+            while start < num:
+                #logger.info("start = %d, end = %d\n"%(start, end))
+                if end > num:   end = num
             
-        logger.info("The %d-th iteration completes"%(iter1+1)); 
-    
+#               import cProfile, pstats, StringIO
+#               pr =  cProfile.Profile()
+#               pr.enable()
+
+                batch_x = x[start:end, :]
+                batch_y = y[start:end, :] 
+                batch_i = sample.sample(batch_y)
+                model.grad_update(batch_x, batch_y, batch_i)      
+
+                start += batch;
+                end += batch;
+#               pr.disable()
+#               s = StringIO.StringIO()
+#               sortby = 'cumulative'
+#               ps = pstats.Stats(pr, stream = s).sort_stats(sortby)
+#               ps.print_stats()
+#               print "update",s.getvalue()
+            
+            logger.info("The %d-th iteration completes"%(iter1+1)); 
+    elif op.alternative_least_square == parameters["op"]:
+        model.b[0] = np.zeros(model.b[0].shape)
+        model.lb   = np.zeros(model.lb.shape)
+
+        for iter1 in xrange(niter):
+            model.al_update(x, y, None)
+            logger.info("The %d-th iteration completes"%(iter1+1));
+
+    else:
+        logger.error("Invalid optimization scheme (%s)"%paramters["op"])
+
     #####tuning the threshold
     total = 0
     start = 0
@@ -150,11 +193,11 @@ def train_mem(train_file, parameters):
     return model
 
 
-def train(train_file, parameters):
-    model  = Model(parameters)
-    batch  = parameters["batch"]
-    niter  = parameters["niter"]
-    sample = sampler.get_sample(parameters)
+def train_external(model, train_file, parameters):
+
+    batch  = parameters["b"]
+    niter  = parameters["i"]
+    sample = sampler.get_sampler(parameters)
     logger = logging.getLogger(Logger.project_name)
 
 
@@ -173,7 +216,7 @@ def train(train_file, parameters):
         while has_next:
             x, y, has_next = train_reader.read()
             idx            = sample.sample(y)
-            model.update(x, y, idx)
+            model.grad_update(x, y, idx)
 
         logger.info("The %d-th iteration completes"%(iter1+1)); 
         train_reader.close()
@@ -195,20 +238,28 @@ def main(argv):
 
     train_file  = parameters["train_file"]
     model_file  = parameters["model_file"]
-    mem         = parameters["mem"]
 
     # read a instance to know the number of features and labels
-    train_reader = SvmReader(train_file, 1)
-    x, y, has_next = train_reader.read()
-    parameters["num_feature"] = x.shape[1]
-    parameters["num_label"]   = y.shape[1]
+    train_reader       = SvmReader(train_file, 1)
+    x, y, has_next     = train_reader.read()
+    parameters["nx"]   = x.shape[1]
+    parameters["ny"]   = y.shape[1]
     train_reader.close()
 
-    if 1 == mem:
-        model = train_mem(train_file, parameters) 
-    else:
-        model = train(train_file, parameters)    
+    model        = Model(parameters)
+    rater        = AdaGrad(model)
+    model.rater  = rater
+    thrsel       = ThresholdSel()
+    model.thrsel = thrsel
 
+    if m.internal_memory == parameters["m"]:
+        model = train_internal(model, train_file, parameters) 
+    elif m.external_memory == parameters["m"]:
+        model = train_external(model, train_file, parameters)    
+    else:
+        logger = logging.getLogger(Logger.project_name)
+        logger.error("Invalid m param")
+        raise Exception("Invalid m param")
     
     #write the model
     #model.clear_for_save()

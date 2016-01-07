@@ -5,10 +5,13 @@ import sys
 path = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(path)
 
+from learnrate    import *
+from common       import *
 from active       import *
 from threshold    import *
 import numpy as np
 import scipy.sparse as sp
+import scipy.sparse.linalg as splinalg
 import math
 import pickle
 import random
@@ -16,156 +19,50 @@ import logging, Logger
 import types
 
 
-class LearnRate:
-    def __init__(self, model):
-        ##the w and b for instances
-        learnrate = float(model.learnrate)
-        self.rate_b = []
-        self.rate_w = []
-        self.nonzero = dict()
-
-        for idx in xrange(len(model.w)):
-            rate_w = (model.w[idx] - model.w[idx]) + learnrate
-            rate_b = (model.b[idx] - model.b[idx]) + learnrate
-            self.rate_w.append(rate_w)
-            self.rate_b.append(rate_b)
-        
-        self.rate_lb = (model.lb - model.lb) + learnrate
-        self.rate_lw = (model.lw - model.lw) + learnrate
-    
-    def compute_rate(self, model):
-        nocommand = 0
-
-    def update_before_paramupdate(self, model):
-        for i in xrange(len(model.grad_w)):
-            if sp.isspmatrix(model.grad_w[i]):
-                nonzero = model.grad_w[i].nonzero()
-                self.nonzero["%d"%i] = nonzero
-
-        #print type(model.grad_lw)        
-        if sp.isspmatrix(model.grad_lw):
-            nonzero = model.grad_lw.nonzero()
-            #t1,t2 = model.grad_lw.shape
-            #print "grad_lw sparity",len(nonzero[0])*1.0/t1 /t2
-            self.nonzero['l'] = nonzero
-
-
-    def update_after_paramupdate(self, model):
-        nocommand = 0
-
-##################The AdaGrad #################
-class AdaGrad(LearnRate):
-    def __init__(self, model):
-        LearnRate.__init__(self, model)        
-        #set the initial_rate
-        self.initial_rate = float(model.learnrate)
-
-        ##the w and b for instances
-        self.ada_b = []
-        self.ada_w = []
-        for idx in xrange(len(model.w)):
-            ada_w = 1 + (model.w[idx] - model.w[idx])
-            ada_b = 1 + (model.b[idx] - model.b[idx])
-            self.ada_w.append(ada_w)
-            self.ada_b.append(ada_b)
-
-        self.ada_lb  = np.ones((model.num_label))
-        self.ada_lw  = np.ones((model.num_factor, model.num_label));
-        self.nonzero = dict()
-
-
-    def update_before_paramupdate(self, model):
-        for i in xrange(len(model.grad_w)):
-            if sp.isspmatrix(model.grad_w[i]):
-                nonzero = model.grad_w[i].nonzero()
-                #t1,t2 = model.grad_w[i].shape
-                #print "grad_w sparity",len(nonzero[0]) * 1.0 / t1 /t2
-                self.nonzero["%d"%i] = nonzero
-                grad_w  = np.asarray(model.grad_w[i].data) + 2 * (model.l2_lambda) * model.w[i][nonzero]
-                self.ada_w[i][nonzero] = self.ada_w[i][nonzero] + grad_w * grad_w            
-            else:
-                grad_w = model.grad_w[i] + 2 * (model.l2_lambda) * model.w[i]
-                self.ada_w[i] = self.ada_w[i] + grad_w * grad_w
-            
-            grad_b = model.grad_b[i]
-            self.ada_b[i] = self.ada_b[i] + grad_b * grad_b            
-
-
-        #print type(model.grad_lw)        
-        if sp.isspmatrix(model.grad_lw):
-            nonzero = model.grad_lw.nonzero()
-            #t1,t2 = model.grad_lw.shape
-            #print "grad_lw sparity",len(nonzero[0])*1.0/t1 /t2
-            self.nonzero['l'] = nonzero
-            grad_lw = np.asarray(model.grad_lw.data) + 2 * model.l2_lambda * model.lw[nonzero]
-            self.ada_lw[nonzero] = self.ada_lw[nonzero] + grad_lw * grad_lw      
-        else:
-            grad_lw = model.grad_lw + 2 * model.l2_lambda * model.lw
-            self.ada_lw = self.ada_lw + grad_lw * grad_lw
-        
-        grad_lb = model.grad_lb
-        self.ada_lb = self.ada_lb + grad_lb * grad_lb  
-
-
-    def compute_rate(self, model): 
-        for i in xrange(len(model.grad_w)):
-            if sp.isspmatrix(model.grad_w[i]):
-                nonzero = self.nonzero['%d'%i]
-                self.rate_w[i][nonzero] = self.initial_rate / np.sqrt(self.ada_w[i][nonzero])
-            else:
-                self.rate_w[i] = self.initial_rate / np.sqrt(self.ada_w[i])            
-            self.rate_b[i] = self.initial_rate / np.sqrt(self.ada_b[i])
-
-        if sp.isspmatrix(model.grad_lw):
-            nonzero = self.nonzero['l']
-            self.rate_lw[nonzero] = self.initial_rate / np.sqrt(self.ada_lw[nonzero])
-        else:
-            self.rate_lw = self.initial_rate / np.sqrt(self.ada_lw)
-        self.rate_lb = self.initial_rate / np.sqrt(self.ada_lb)
-
-
-
-############## Model ##############
 class Model:
     def __init__(self):
         nonparamter = 0 
     def __init__(self,  parameters):
-        ##The paramters the user must provide
-        self.num_feature   = 1
-        self.num_label     = 1
-        ##The optional parameters
-        self.num_factor    = 300
-        self.hidden_active = "tanh"
-        self.output_active = "sgmoid"
-        self.loss          = "negative_log_likelihood"
-        self.learnrate     = 0.1
-        self.l2_lambda     = 0.001
+
+        self.params        = parameters;
+
+        #struct param
+        self.num_feature   = 1 ## this param must be provided
+        self.num_label     = 1 ## this param must be provided
+        self.num_factor    = 50
+        self.hidden_active = act.tanh
+        self.output_active = act.sgmoid
         self.sizes         = []
+        
+        #train param
+        self.loss          = lo.negative_log_likelihood
+        self.l2_lambda     = 0.001
         self.sparse_thr    = 1
-	#self.sparse_thr    = 0.000000001
+        self.optimization  = op.gradient
+        self.svdsk         = 10000000
 	
-        if "num_feature" in parameters:
-            self.num_feature = parameters["num_feature"]
-        if "num_label" in parameters:
-            self.num_label = parameters["num_label"] 
-        ##The optional parameters
-        if "num_factor" in parameters:
-            self.num_factor = parameters["num_factor"] 
-        if "hidden_active" in parameters:
-            self.hidden_active = parameters["hidden_active"]
-        if "output_active" in parameters:   
-            self.output_active = parameters["output_active"]
-        if "loss" in parameters:
-            self.loss = parameters["loss"]
-        if "learnrate" in parameters:
-            self.learnrate = parameters["learnrate"]
-        if "l2_lambda" in parameters:
-            self.l2_lambda = parameters["l2_lambda"]
+        if "nx" in parameters:
+            self.num_feature    = parameters["nx"]
+        if "ny" in parameters:
+            self.num_label      = parameters["ny"] 
+
+        if "h" in parameters:
+            self.num_factor     = parameters["h"] 
+        if "ha" in parameters:
+            self.hidden_active  = parameters["ha"]
+        if "oa" in parameters:   
+            self.output_active  = parameters["oa"]
         if "sizes" in parameters:
-            self.sizes = parameters["sizes"]
-        if "sparse_thr" in parameters:
-            self.sparse_thr = parameters["sparse_thr"]
-    
+            self.sizes          = parameters["sizes"]
+        if "l" in parameters:
+            self.loss           = parameters["l"]
+        if "l2" in parameters:
+            self.l2_lambda      = parameters["l2"]
+        if "sp" in parameters:
+            self.sparse_thr     = parameters["sp"]
+
+
+ 
         ##the w and b for instances
         structure = [ self.num_feature ]
         for i in xrange(len(self.sizes)):
@@ -198,13 +95,12 @@ class Model:
 
         self.grad_lw  = np.zeros(self.lw.shape)
         self.grad_lb  = np.zeros(self.lb.shape)
-        ##at the end, choose the learnrater
-        #self.rater = LearnRate(self)
-        self.rater = AdaGrad(self)
-        #self.rater = AdaDelta(self)        
             
-        ## the threshold
-        self.thrsel = ThresholdSel()    
+
+        #variable for al
+        self.lambda_x = None
+        self.lambda_y = None
+
         
     def save(self,filename):
         wf = open(filename,"w")
@@ -368,8 +264,6 @@ class Model:
         print "_______________"
 
 
-
-
         print "lb"
         for i in xrange(n):
                 print self.lb[i],"\t",
@@ -385,13 +279,13 @@ class Model:
         print "__________________________________________________"
 
 
-    def update(self, x, y, idx):
+    def grad_update(self, x, y, idx):
         
         #import cProfile, pstats, StringIO
         #pr =  cProfile.Profile()
         #pr.enable()
- 
-        self.check_dimension(x, y )
+        self.check_dimension(x,y)        
+
         self.bp(x, y, idx)
         self.printself()
         self.rater.update_before_paramupdate(self)
@@ -399,15 +293,105 @@ class Model:
         self.apply()
         self.printself()
         self.rater.update_after_paramupdate(self)
+    
         
-        #pr.disable()
-        #s = StringIO.StringIO()
-        #sortby = 'cumulative'
-        #ps = pstats.Stats(pr, stream = s).sort_stats(sortby)
-        #ps.print_stats()
-        #print "update",s.getvalue()
+    def al_update(self, x, y, idx):
+        self.b[0] = np.zeros(self.b[0].shape)
+        self.lb   = np.zeros(self.lb.shape)
 
 
+        if lo.least_square != self.loss:
+            logger = logging.getLogger(Logger.project_name)
+            logger.error("loss != least_square when alternative_least_square applied!")
+            raise Exception("loss != least_square when alternative_least_square applied!")
+        if act.linear != self.params["ha"]:
+            logger = logging.getLogger(Logger.project_name)
+            logger.error("hidden_activation != linear "
+                         "when alternative_least_square applied!")
+            raise Exception("hidden_activation != linear "
+                            "when alternative_least_square applied !")
+
+        if None != idx:
+            logger = logging.getLogger(Logger.project_name)
+            logger.error("using sampling scheme when alternative_least_square applied!")
+            raise Exception("using sampling scheme when alternative_least_square applied!")
+            
+        instance   = None;         
+        num_ins    = x.shape[0]
+        num_fea    = self.w[0].shape[0]
+        num_hidden = self.w[0].shape[1]
+        num_label  = self.lw.shape[1]
+
+
+        ###init the al params
+        if self.lambda_x is None:
+            if sp.isspmatrix(x):
+                diags          = np.ones(num_fea) * math.sqrt(self.params["l2"])
+                self.lambda_x  = sp.vstack([x, sp.diags(diags,0,format = 'csr')])
+            else:
+                diags          = np.ones(num_fea) * math.sqrt(self.params["l2"])  
+                self.lambda_x  = np.vstack([x, np.diag(diags)])
+        
+        if self.lambda_y is None:
+            if sp.isspmatrix(y):
+                part          = sp.csr_matrix(([0],([0],[0])), shape=(num_hidden,num_label))
+                self.lambda_y = sp.vstack([y, part])
+            else:
+                part          = np.zeros((num_hidden, num_label))
+                self.lambda_y = np.vstack([y, part])
+
+
+        ##start
+        if sp.isspmatrix(x):
+            instance = x * self.w[0]
+        else:
+            instance = np.dot(x, self.w[0])
+        diags       = np.ones(num_hidden) * math.sqrt(self.params["l2"])
+        lambda_ins  = np.vstack([instance, np.diag(diags)])           
+       
+        #if sp.isspmatrix(y):
+        #    perfect_ins        = y * np.linalg.pinv(self.lw)
+        #else:
+        #    perfect_ins        = np.dot(y, np.linalg.pinv(self.lw))
+        #part                 = np.zeros((num_fea,num_hidden))
+        #lambda_perfect_ins   = np.vstack([perfect_ins, part])       
+       
+ 
+        if sp.isspmatrix(y):
+            self.lw          = np.linalg.pinv(lambda_ins) * self.lambda_y  
+        else:
+            self.lw          = np.dot(np.linalg.pinv(lambda_ins), self.lambda_y)
+
+
+        if sp.isspmatrix(y):
+            perfect_ins        = y * np.linalg.pinv(self.lw)
+        else:
+            perfect_ins        = np.dot(y, np.linalg.pinv(self.lw))
+        part                 = np.zeros((num_fea,num_hidden))
+        lambda_perfect_ins   = np.vstack([perfect_ins, part])       
+        
+
+
+        if sp.isspmatrix(x):
+            k         = min(min(num_ins-1, num_fea-1), self.svdsk - 1)
+            [u,d,v]   = splinalg.svds(self.lambda_x, k)
+            e         = 0.000000001
+            if d[0] < e:
+                for i in xrange(len(d)-1):
+                    if d[i] >= e:break
+                u = u[:,i:k]
+                d = d[i:k]
+                v = v[i:k,:]
+            ut        = np.transpose(u)
+            d         = 1.0 / d 
+            dd        = np.diag(d)
+            vt        = np.transpose(v)
+            self.w[0] = np.dot(np.dot(vt,dd), np.dot(ut,lambda_perfect_ins)) 
+        else:
+            self.w[0] = np.dot(np.linalg.pinv(self.lambda_x), lambda_perfect_ins) 
+
+
+    
     def ff(self, x):
         self.check_dimension(x)
   
@@ -428,7 +412,7 @@ class Model:
         output  = np.dot( tmp, self.lw ) 
         output += np.tile(self.lb,[n_ins, 1])  
         #output  = active( output, self.output_active )
-        #output   = np.zeros((n_ins,self.num_label))
+        #output  = np.zeros((n_ins,self.num_label))
         
         return output 
 
@@ -489,8 +473,10 @@ class Model:
         #---------------------------------------------------
         #compute the grad
         #---------------------------------------------------
-        grad_type    = self.output_active \
-                       + "_" + self.loss
+        #grad_type    = self.output_active \
+        #               + "_" + self.loss
+        
+        grad_type    = actlo2grad(self.output_active, self.loss);
         output_grad  = grad( output, y, grad_type )
         #print "type(output_grad",type(output_grad),sp.isspmatrix(output_grad) 
 
@@ -568,8 +554,8 @@ class Model:
         #import cProfile, pstats, StringIO
         #pr =  cProfile.Profile()
         #pr.enable()
-        learn_rate   = self.learnrate
-        l2_lambda       = self.l2_lambda
+        learn_rate   = self.params["r"]
+        l2_lambda    = self.l2_lambda
         n_layer      = len(self.w)
         for i in xrange(n_layer):
         #    print type(self.grad_w[i])

@@ -5,6 +5,7 @@ path  = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(path + "/utils/Python_Utils")
 sys.path.append(path + "/../utils/Python_Utils")
 
+from common import *
 from arffio import *
 import logging, Logger
 import pickle
@@ -14,31 +15,25 @@ import random
 import math
 
 
+
 class Sampler:
     def __init__(self, paramters):
         nocode = 0
     def update(self, y):
         nocode = 0
     def sample(self, y):
-        return sp.lil_matrix(y.shape)
+        nocode = 0
 
 class FullSampler(Sampler):
     def sample(self, y):
-        return sp.lil_matrix(y.shape) + 1
+        return sp.csr_matrix(np.ones(y.shape))
      
-    def update(self, y):
-        lili = 0
-    def predict(self, y):
-        lili = 0
-    def sample(self, y):
-        lili = 0        
 
 class InstanceSampler(Sampler):
     def __init__(self, parameters):
-        self.ratio = 1
-        if "sample_ratio" in parameters:
-            self.ratio = parameters["sample_ratio"]
-        print "self.ratio",self.ratio
+        self.ratio = 5
+        if "sr" in parameters:
+            self.ratio = parameters["sr"]
 
     def sample(self, y):
         #sample = np.int_(y)  
@@ -85,21 +80,21 @@ class InstanceSampler(Sampler):
 
 
 
-def get_sample(parameters):
+def get_sampler(parameters):
 
-    if "sample_type" not in parameters:
+    if "st" not in parameters:
         logger = logging.getLogger(Logger.project_name)
         logger.error("Not sample_type provided by params in "
                      "sampler.get_sample")
         raise Exception("Not sample_type provided by params in"
                         " sampler.get_sample")
     
-    sample_type = parameters["sample_type"]
+    sample_type = parameters["st"]
     
-    if "full" == sample_type:
+    if st.full_sampler == sample_type:
         return FullSampler(parameters)
 
-    elif "instance_sample" == sample_type:
+    elif st.instance_sampler == sample_type:
         return InstanceSampler(parameters)
 
     else:

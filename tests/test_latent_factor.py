@@ -9,17 +9,39 @@ import unittest;
 import scipy.sparse as sp
 import active 
 import pickle;
+import copy
+
+
+class LatentFactorTester1(unittest.TestCase):
+    def setUp(self):
+        self.parameters = copy.deepcopy(default_params);
+        self.parameters["h"]             = 2;
+        self.parameters["nx"]            = 2;
+        self.parameters["ny"]            = 2;
+        self.parameters["sizes"]         = [3];
+        self.parameters["ha"]            = act.linear;
+        self.parameters["oa"]            = act.sgmoid;
+        self.parameters["l"]             = lo.negative_log_likelihood;
+        self.parameters["ins_lambda"]    = 0.001;
+        self.parameters["label_lambda"]  = 0.001; 
+        self.parameters["op"]            = op.alternative_least_square
+    def params(self):
+        model = Model(self.parameters);
+        self.assertEquals(model.hidden_active, "linear")        
+        self.assertEquals(model.loss,          "negative_log_likelihood")
+        self.assertEquals(model.optimization,  "alternative_least_square")
+        self.assertEquals(model.output_active, act.sgmoid)
 
 class LatentFactorTester(unittest.TestCase):
     def setUp(self):
-        self.parameters = dict();
-        self.parameters["num_feature"]   = 2;
-        self.parameters["num_factor"]    = 2;
-        self.parameters["num_label"]     = 2;
+        self.parameters = copy.deepcopy(default_params);
+        self.parameters["h"]             = 2;
+        self.parameters["nx"]            = 2;
+        self.parameters["ny"]            = 2;
         self.parameters["sizes"]         = [3];
-        self.parameters["hidden_active"] = "tanh";
-        self.parameters["output_active"] = "sgmoid";
-        self.parameters["loss"]          = "negative_log_likelihood";
+        self.parameters["ha"]            = act.tanh;
+        self.parameters["oa"]            = act.sgmoid;
+        self.parameters["l"]             = lo.negative_log_likelihood;
         self.parameters["ins_lambda"]    = 0.001;
         self.parameters["label_lambda"]  = 0.001; 
 
@@ -57,9 +79,9 @@ class LatentFactorTester(unittest.TestCase):
     
 
     def test_dimension(self):
-        parameters = dict();
-        parameters["num_feature"] = 100;
-        parameters["num_label"]   = 100;
+        parameters = copy.deepcopy(default_params);
+        parameters["nx"] = 100;
+        parameters["ny"]   = 100;
         model = Model(parameters);
         
         x = np.array([[0 for j in xrange(100)] for i in xrange(2)]);
@@ -100,6 +122,7 @@ class LatentFactorTester(unittest.TestCase):
 
     def test_notfull_bp(self):
         return        
+
 
     def test_bp(self):
         model = self.init_model();
