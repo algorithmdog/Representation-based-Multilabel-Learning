@@ -11,11 +11,11 @@ class Enum(set):
 
 act      = Enum(["sgmoid","tanh","linear"])
 lo       = Enum(["negative_log_likelihood","least_square"])
-grad = Enum(["sgmoid_negative_log_likelihood",\
-             "linear_least_square",\
-             "sgmoid",\
-             "tanh",\
-             "linear"]);
+grad     = Enum(["sgmoid_negative_log_likelihood",\
+                 "linear_least_square",\
+                 "sgmoid",\
+                 "tanh",\
+                 "linear"]);
 
 ha_map = {0:act.tanh,   1:act.linear};
 oa_map = {0:act.sgmoid, 1:act.linear};
@@ -44,23 +44,41 @@ m      = Enum(["internal_memory", "external_memory"])
 m_map  = {0: m.internal_memory, 1:m.external_memory} 
 
 
-####params 
-default_params = dict()
-default_params["h"]            = 100
-default_params["ha"]           = act.tanh
-default_params["oa"]           = act.sgmoid
+## default params for representation 
+rep_default_params = dict()
+rep_default_params["h"]            = 100
+rep_default_params["ha"]           = act.tanh
+rep_default_params["oa"]           = act.sgmoid
 
-default_params["l"]            = lo.negative_log_likelihood
-default_params["l2"]           = 0.001
-default_params["b"]            = 10
-default_params["i"]            = 20
-default_params["st"]           = st.instance_sampler
-default_params["sr"]           = 5 
-default_params["sp"]           = 0.01
-default_params["op"]           = op.gradient
-default_params["m"]            = m.internal_memory    
-default_params["r"]            = 0.1
+rep_default_params["l"]            = lo.negative_log_likelihood
+rep_default_params["l2"]           = 0.001
+rep_default_params["b"]            = 10
+rep_default_params["i"]            = 20
+rep_default_params["st"]           = st.instance_sampler
+rep_default_params["sr"]           = 5 
+rep_default_params["sp"]           = 0.01
+rep_default_params["op"]           = op.gradient
+rep_default_params["m"]            = m.internal_memory    
+rep_default_params["r"]            = 0.1
 
-default_params["sizes"]        = []
+rep_default_params["sizes"]        = []
 
+## default for leml
+leml_default_params = dict()
 
+leml_default_params["h"]            = 100
+leml_default_params["ha"]           = act.linear
+leml_default_params["oa"]           = act.linear
+
+leml_default_params["l"]            = lo.least_square
+leml_default_params["l2"]           = 0.001
+leml_default_params["b"]            = 10
+leml_default_params["i"]            = 20
+leml_default_params["st"]           = st.full_sampler
+leml_default_params["sr"]           = 5 
+leml_default_params["sp"]           = 0.01
+leml_default_params["op"]           = op.alternative_least_square
+leml_default_params["m"]            = m.internal_memory
+leml_default_params["r"]            = 0.1
+
+rep_default_params["sizes"]        = []

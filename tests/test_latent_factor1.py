@@ -13,7 +13,7 @@ import copy;
 
 class ALLatentFactorTester(unittest.TestCase):
     def setUp(self):
-        self.parameters = copy.deepcopy(default_params);
+        self.parameters = copy.deepcopy(leml_default_params);
         self.parameters["h"]             = 1;
         self.parameters["nx"]            = 2;
         self.parameters["ny"]            = 2;
