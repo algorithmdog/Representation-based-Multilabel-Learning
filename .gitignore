@@ -5,3 +5,4 @@ utils
 *.pyc
 result
 experiment
+nohup.out

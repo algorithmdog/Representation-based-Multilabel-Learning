@@ -24,28 +24,16 @@ class Model:
         nonparamter = 0 
     def __init__(self,  parameters):
 
-        self.params        = parameters;
+        if 0 == len(parameters):
+            ## this model is for prediction. The parameters will be loaded from disk later.
+            return
 
-        #struct param
-        self.num_feature   = 1 ## this param must be provided
-        self.num_label     = 1 ## this param must be provided
-        self.num_factor    = 50
-        self.hidden_active = act.tanh
-        self.output_active = act.sgmoid
-        self.sizes         = []
-        
-        #train param
-        self.loss          = lo.negative_log_likelihood
-        self.l2_lambda     = 0.001
-        self.sparse_thr    = 1
-        self.optimization  = op.gradient
-        self.svdsk         = 10000000
+        self.params        = parameters;
 	
         if "nx" in parameters:
             self.num_feature    = parameters["nx"]
         if "ny" in parameters:
             self.num_label      = parameters["ny"] 
-
         if "h" in parameters:
             self.num_factor     = parameters["h"] 
         if "ha" in parameters:
@@ -61,7 +49,8 @@ class Model:
         if "sp" in parameters:
             self.sparse_thr     = parameters["sp"]
 
-
+        if "svdsk" in parameters:
+            self.svdsk = parameters["svdsk"]
  
         ##the w and b for instances
         structure = [ self.num_feature ]
@@ -315,15 +304,14 @@ class Model:
             logger = logging.getLogger(Logger.project_name)
             logger.error("using sampling scheme when alternative_least_square applied!")
             raise Exception("using sampling scheme when alternative_least_square applied!")
-            
+        
+        #################### init the params ###################    
         instance   = None;         
         num_ins    = x.shape[0]
         num_fea    = self.w[0].shape[0]
         num_hidden = self.w[0].shape[1]
         num_label  = self.lw.shape[1]
 
-
-        ###init the al params
         if self.lambda_x is None:
             if sp.isspmatrix(x):
                 diags          = np.ones(num_fea) * math.sqrt(self.params["l2"])
@@ -341,7 +329,8 @@ class Model:
                 self.lambda_y = np.vstack([y, part])
 
 
-        ##start
+        ############################ start #########################
+        ##lw
         if sp.isspmatrix(x):
             instance = x * self.w[0]
         else:
@@ -362,7 +351,7 @@ class Model:
         else:
             self.lw          = np.dot(np.linalg.pinv(lambda_ins), self.lambda_y)
 
-
+        ##w
         if sp.isspmatrix(y):
             perfect_ins        = y * np.linalg.pinv(self.lw)
         else:
@@ -374,11 +363,11 @@ class Model:
 
         if sp.isspmatrix(x):
             k         = min(min(num_ins-1, num_fea-1), self.svdsk - 1)
-            [u,d,v]   = splinalg.svds(self.lambda_x, k)
+            [u,d,v]   = splinalg.svds(self.lambda_x, k = k)
             e         = 0.000000001
             if d[0] < e:
                 for i in xrange(len(d)-1):
-                    if d[i] >= e:break
+                    if d[i] >= e: break
                 u = u[:,i:k]
                 d = d[i:k]
                 v = v[i:k,:]

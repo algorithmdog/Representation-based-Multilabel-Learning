@@ -62,6 +62,7 @@ rep_default_params["m"]            = m.internal_memory
 rep_default_params["r"]            = 0.1
 
 rep_default_params["sizes"]        = []
+rep_default_params["svdsk"]        = 1000
 
 ## default for leml
 leml_default_params = dict()
@@ -81,4 +82,5 @@ leml_default_params["op"]           = op.alternative_least_square
 leml_default_params["m"]            = m.internal_memory
 leml_default_params["r"]            = 0.1
 
-rep_default_params["sizes"]        = []
+leml_default_params["sizes"]        = []
+leml_default_params["svdsk"]        = 1000

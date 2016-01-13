@@ -60,7 +60,7 @@ def parseParameter(argv):
 
 def main(argv):
     parameters = parseParameter(argv)
-
+    
     train_file  = parameters["train_file"]
     model_file  = parameters["model_file"]
 
