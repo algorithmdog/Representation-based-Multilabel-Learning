@@ -25,13 +25,61 @@ def parseParameter(argv):
     return parameters
 
 
-def hamming(p, t):
+def check(p, t):
     if p.shape != t.shape:
-        pi,pj = p.shape
-        ti,tj = t.shape
+        pi, pj = p.shape
+        ti, tj = t.shape    
         logger = logging.getLogger(Logger.project_name)
         logger.error("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj))
         raise Exception("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj))
+        return False
+    return True   
+ 
+
+
+
+def acc(p, t):
+
+    check(p, t)
+
+    m,n   = p.shape
+    total = m * n
+
+
+    numerator = [0 for i in xrange(m)]
+    dominator = [0 for i in xrange(m)]
+    pxys      = dict()
+    xy        = p.nonzero()
+    for i in xrange(len(xy[0])):
+        x = xy[0][i]
+        y = xy[1][i]
+        pxys["%d_%d"%(x,y)] = 1
+        dominator[x]       += 1
+
+    xy        = t.nonzero()
+    for i in xrange(len(xy[0])):
+        x = xy[0][i]
+        y = xy[1][i]
+        if "%d_%d"%(x,y) in pxys:
+            numerator[x] += 1    
+        else: 
+            dominator[x] += 1
+
+    acc = 0.0
+    for i in xrange(m):
+        if 0 == dominator[i]:
+            acc += 0.0
+        else:
+            acc += 1.0 * numerator[i] / dominator[i]
+    return acc / m 
+
+
+
+def hamming(p, t):
+
+    check(p, t)
+
+
     m,n   = p.shape
     total = m * n
 
@@ -59,12 +107,7 @@ def hamming(p, t):
 
 
 def instance_F(p,t):
-    if p.shape != t.shape:
-        pi,pj = p.shape
-        ti,tj = t.shape
-        logger = logging.getLogger(Logger.project_name)
-        logger.error("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj))
-        raise Exception("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj))
+    check(p,t)
 
     m,n = p.shape
     correct  = [0 for i in xrange(m)]
@@ -96,12 +139,7 @@ def instance_F(p,t):
 
 
 def label_F(p,t):
-    if p.shape != t.shape:
-        pi,pj = p.shape
-        ti,tj = t.shape
-        logger = logging.getLogger(Logger.project_name)
-        logger.error("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj))
-        raise Exception("p.shape(%d,%d) != t.shape(%d,%d)"%(pi,pj,ti,tj))
+    check(p,t)
 
     m,n = p.shape
     correct  = [0 for i in xrange(n)]
@@ -142,6 +180,7 @@ if __name__ == "__main__":
     reader   = arffio.SvmReader(true_file, batch = 1000000000000)
     _, t     = reader.full_read()
 
+
     ham = hamming(p, t)
     print "hamming loss:%f|"%ham,
 
@@ -149,4 +188,10 @@ if __name__ == "__main__":
     print "ins_f:%f|"%ins_f,
 
     label_f = label_F(p,t)
-    print "label_f:%f|"%label_f
+    print "label_f:%f|"%label_f,
+
+    acc = acc(p, t)
+    print "acc:%f|"%acc,
+
+
+    print ""

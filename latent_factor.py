@@ -1,4 +1,5 @@
 #!/bin/python
+#coding:utf-8
 import os
 import sys
 
@@ -24,28 +25,16 @@ class Model:
         nonparamter = 0 
     def __init__(self,  parameters):
 
-        self.params        = parameters;
+        if 0 == len(parameters):
+            ## this model is for prediction. The parameters will be loaded from disk later.
+            return
 
-        #struct param
-        self.num_feature   = 1 ## this param must be provided
-        self.num_label     = 1 ## this param must be provided
-        self.num_factor    = 50
-        self.hidden_active = act.tanh
-        self.output_active = act.sgmoid
-        self.sizes         = []
-        
-        #train param
-        self.loss          = lo.negative_log_likelihood
-        self.l2_lambda     = 0.001
-        self.sparse_thr    = 1
-        self.optimization  = op.gradient
-        self.svdsk         = 10000000
+        self.params        = parameters;
 	
         if "nx" in parameters:
             self.num_feature    = parameters["nx"]
         if "ny" in parameters:
             self.num_label      = parameters["ny"] 
-
         if "h" in parameters:
             self.num_factor     = parameters["h"] 
         if "ha" in parameters:
@@ -61,7 +50,8 @@ class Model:
         if "sp" in parameters:
             self.sparse_thr     = parameters["sp"]
 
-
+        if "svdsk" in parameters:
+            self.svdsk = parameters["svdsk"]
  
         ##the w and b for instances
         structure = [ self.num_feature ]
@@ -315,15 +305,14 @@ class Model:
             logger = logging.getLogger(Logger.project_name)
             logger.error("using sampling scheme when alternative_least_square applied!")
             raise Exception("using sampling scheme when alternative_least_square applied!")
-            
+        
+        #################### init the params ###################    
         instance   = None;         
         num_ins    = x.shape[0]
         num_fea    = self.w[0].shape[0]
         num_hidden = self.w[0].shape[1]
         num_label  = self.lw.shape[1]
 
-
-        ###init the al params
         if self.lambda_x is None:
             if sp.isspmatrix(x):
                 diags          = np.ones(num_fea) * math.sqrt(self.params["l2"])
@@ -341,7 +330,8 @@ class Model:
                 self.lambda_y = np.vstack([y, part])
 
 
-        ##start
+        ############################ start #########################
+        ##lw
         if sp.isspmatrix(x):
             instance = x * self.w[0]
         else:
@@ -362,7 +352,7 @@ class Model:
         else:
             self.lw          = np.dot(np.linalg.pinv(lambda_ins), self.lambda_y)
 
-
+        ##w
         if sp.isspmatrix(y):
             perfect_ins        = y * np.linalg.pinv(self.lw)
         else:
@@ -371,14 +361,13 @@ class Model:
         lambda_perfect_ins   = np.vstack([perfect_ins, part])       
         
 
-
         if sp.isspmatrix(x):
             k         = min(min(num_ins-1, num_fea-1), self.svdsk - 1)
-            [u,d,v]   = splinalg.svds(self.lambda_x, k)
+            [u,d,v]   = splinalg.svds(self.lambda_x, k = k)
             e         = 0.000000001
             if d[0] < e:
                 for i in xrange(len(d)-1):
-                    if d[i] >= e:break
+                    if d[i] >= e: break
                 u = u[:,i:k]
                 d = d[i:k]
                 v = v[i:k,:]
@@ -444,31 +433,36 @@ class Model:
             hidden_output.append(tmp)
         ins_factor = tmp
 
-        xy    = idx.nonzero()
-        mo,no = idx.shape
-        #print "sparity of label", len(xy[0]) * 1.0 / (mo * no)
-        if len(xy[0]) * 1.0 / (mo * no) < self.sparse_thr:
-            row = ins_factor[xy[0],:]
-            col = self.lw[:,xy[1]]
-            data  = np.einsum('ik,ki->i',row,col)
-            data += self.lb[xy[1]]
-	   
-            #data = np.zeros(len(xy[0]))            
-            #for k in xrange(len(xy[0])):
-            #    i = xy[0][k]
-            #    j = xy[1][k]
-            #    data[k] = np.dot(ins_factor[i,:], self.lw[:,j]) + self.lb[j]
-            
-            output = sp.csr_matrix((data,xy), idx.shape)
 
-        else: 
-            output = np.zeros(idx.shape) 
-            for k in xrange(len(xy[0])):
-                i = xy[0][k]
-                j = xy[1][k]
-                output[i,j]  = np.dot( ins_factor[i:i+1, :], self.lw[:, j:j+1]) \
+        if None == idx:
+            output = np.dot(ins_factor, self.lw)        
+        else:
+            xy    = idx.nonzero()
+            mo,no = idx.shape
+            #print "sparity of label", len(xy[0]) * 1.0 / (mo * no)
+            if len(xy[0]) * 1.0 / (mo * no) < self.sparse_thr:
+                row = ins_factor[xy[0],:]
+                col = self.lw[:,xy[1]]
+                data  = np.einsum('ik,ki->i',row,col)
+                data += self.lb[xy[1]]
+	   
+                #data = np.zeros(len(xy[0]))            
+                #for k in xrange(len(xy[0])):
+                #    i = xy[0][k]
+                #    j = xy[1][k]
+                #    data[k] = np.dot(ins_factor[i,:], self.lw[:,j]) + self.lb[j]
+            
+                output = sp.csr_matrix((data,xy), idx.shape)
+
+            else: 
+                output = np.zeros(idx.shape) 
+                for k in xrange(len(xy[0])):
+                    i = xy[0][k]
+                    j = xy[1][k]
+                    output[i,j]  = np.dot( ins_factor[i:i+1, :], self.lw[:, j:j+1]) \
                                + self.lb[j]
-        output  = active( output, self.output_active )         
+
+        output  = active( output, self.output_active, idx )         
 
         #---------------------------------------------------
         #compute the grad
@@ -480,39 +474,47 @@ class Model:
         output_grad  = grad( output, y, grad_type )
         #print "type(output_grad",type(output_grad),sp.isspmatrix(output_grad) 
 
-        num_rates, _ = idx.shape 
+        num_rates, _ = y.shape 
         if sp.isspmatrix(output_grad):
             #print "enter"
             self.grad_lw  = sp.csr_matrix(np.transpose(ins_factor)) * output_grad
             self.grad_lb  = np.asarray(output_grad.sum(0))[0,:]
             #print "sp.issmatrix(self.grad_lw)", sp.isspmatrix(self.grad_lw)
         else:
-            self.grad_lw  = self.lw - self.lw
-            self.grad_lb  = self.lb - self.lb
-            xy = idx.nonzero()
-            for k in xrange(len(xy[0])):
-                i = xy[0][k]   
-                j = xy[1][k]
-                self.grad_lw[:,j] += output_grad[i,j] * ins_factor[i,:]
-                self.grad_lb[j]   += output_grad[i,j]
+            if None == idx:
+                self.grad_lw = np.asarray(np.dot(np.transpose(ins_factor), output_grad))
+                self.grad_lb = np.asarray(output_grad.sum(0))[0,:]
+            else:
+                self.grad_lw  = self.lw - self.lw
+                self.grad_lb  = self.lb - self.lb
+                xy = idx.nonzero()
+                for k in xrange(len(xy[0])):
+                    i = xy[0][k]   
+                    j = xy[1][k]
+                    self.grad_lw[:,j] += output_grad[i,j] * ins_factor[i,:]
+                    self.grad_lb[j]   += output_grad[i,j]
         self.grad_lw /= num_rates
         self.grad_lb /= num_rates
-	#self.grad_lw = np.asarray(self.grad_lw.todense())
-	#self.grad_lb = self.grad_lb.todense()
+	    #self.grad_lw = np.asarray(self.grad_lw.todense())
+	    #self.grad_lb = self.grad_lb.todense()
 
         ## compute grad of instance factor
-        xy = idx.nonzero()
-        ins_factor_grad = ins_factor - ins_factor
-        #ins_factor_grad = np.zeros(ins_factor.shape)
         if sp.isspmatrix(output_grad):
+            ins_factor_grad = ins_factor - ins_factor;
+            xy = output_grad.nonzero()
             for i,j,v in zip(xy[0], xy[1], output_grad.data):
-                ins_factor_grad[i,:] += v * self.lw[:,j]
+                    ins_factor_grad[i,:] += v * self.lw[:,j]
         
         else:
-            for k in xrange(len(xy[0])):
-                i = xy[0][k]
-                j = xy[1][k]
-                ins_factor_grad[i,:] += output_grad[i,j] * self.lw[:, j]
+            if None == idx:
+                ins_factor_grad = np.asarray(np.dot(output_grad, np.transpose(self.lw))) 
+            else:
+                ins_factor_grad = ins_factor - ins_factor
+                xy = idx.nonzero()
+                for k in xrange(len(xy[0])):
+                    i = xy[0][k]
+                    j = xy[1][k]
+                    ins_factor_grad[i,:] += output_grad[i,j] * self.lw[:, j]
 
        # self.grad_lw = np.asarray(self.grad_lw.todense())
        
@@ -520,6 +522,8 @@ class Model:
         #import cProfile, pstats, StringIO
         #pr =  cProfile.Profile()
         #pr.enable()
+
+
         tmp = ins_factor_grad
         for i in xrange( len(self.w) - 1, -1, -1):
             tmp = tmp * grad(tmp, grad_type =  self.hidden_active )

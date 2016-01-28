@@ -2,16 +2,17 @@
 import active
 import unittest
 import numpy as np;
+import common
 
 from Matrix_Utils import *;
 
 
 class ActiveTester(unittest.TestCase):
     def test_active(self):
-        a        = np.array([[1,2],[0,0]]);
+        a        = np.array([[1.0,2],[0,0],[-1,-2]]);
         
         # test sgmoid
-        standard   = np.array([[0.7310585786300049,0.8807970779778823],[0.5,0.5]]);
+        standard   = np.array([[0.7310585786300049,0.8807970779778823],[0.5,0.5], [0.2689414213699951, 0.11920292202211755]]);
         a_sgmoid   = active.active(a);
         self.assertEqual(is_matrix_equals(a_sgmoid, standard), True);
                 
@@ -28,7 +29,7 @@ class ActiveTester(unittest.TestCase):
 
         # test rel
         standard = np.array([[0.1, 0],[0,10]]);
-        a_rel = active.active(a, "rel");
+        a_rel = active.active(a, "relu");
         self.assertTrue(is_matrix_equals(a_rel, standard));
 
         with self.assertRaises(Exception):
@@ -50,6 +51,7 @@ class ActiveTester(unittest.TestCase):
         self.assertLess(abs(loss-0.9400000000), 0.000001);
         
 
+        '''
         a = np.array([[0.1,0.2], [3,9]]);
         y = np.array([[1,0],[0,1]]);
         idx = np.array([[0,1],[1,1]]);
@@ -58,10 +60,12 @@ class ActiveTester(unittest.TestCase):
         loss = active.loss(a,y,"appro_l1_hinge", idx);
         self.assertLess(abs(loss-(6.091-0.891)), 0.00000001);
 
+        
         loss = active.loss(a,y,"l2_hinge");
         self.assertLess(abs(loss - 18.25), 0.0000001);
         loss = active.loss(a,y,"l2_hinge",idx);
         self.assertLess(abs(loss - (18.25-0.81)), 0.0000001);
+        '''
 
         with self.assertRaises(Exception):
             active.loss(a,y, "unkonw loss");
@@ -85,11 +89,19 @@ class ActiveTester(unittest.TestCase):
         tx   = np.array([[-1.8,0.4],[0.6,-0.2]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
 
-        
+       
+        a  = np.array([[1, 1, -2,1]])
+        y  = np.array([[1, 1, 0,0]])
+        grad = active.grad(a, y, grad_type = common.grad.linear_weighted_approximate_rank_pairwise)
+        st = np.array([[-1.0,-1.0, 0,2]])
+        self.assertTrue(is_matrix_equals(grad, st), True)
+
+ 
         ## new test data for hinge function
         a = np.array([[0.1, -2],[0.3, 9]]);        
         y = np.array([[1,0],[0,1]]);
 
+        '''
         grad = active.grad(a, y, grad_type = "linear_appro_l1_hinge");
         tx   = np.array([[-1.17,0],[1,0]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
@@ -97,7 +109,8 @@ class ActiveTester(unittest.TestCase):
         grad = active.grad(a, y, grad_type = "linear_l2_hinge");
         tx   = np.array([[-1.8,0],[2.6,0]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
- 
+        ''' 
+
         a = np.array([[0.1,0.2],[0.3,0.9]]);
 
         grad = active.grad(a, grad_type = "sgmoid");
@@ -114,7 +127,7 @@ class ActiveTester(unittest.TestCase):
 
         a = np.array([[0.1, -0.2], [-0.3, 10]]); 
        
-        grad = active.grad(a, grad_type = "rel");
+        grad = active.grad(a, grad_type = "relu");
         tx   = np.array([[1, 0],[0,1]]);
         self.assertTrue(is_matrix_equals(grad, tx), True);
 

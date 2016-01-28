@@ -17,7 +17,6 @@ class SvmWriter:
     def __init__(self, filename, num_feature, num_label):
         self.file = open(filename, "w")
         line = "#num_feature=%d num_label=%d\n"%(num_feature,num_label)
-        print line
         self.file.write(line)
      
     def write(self, x, y):

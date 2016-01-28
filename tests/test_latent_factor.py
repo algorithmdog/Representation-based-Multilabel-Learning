@@ -14,7 +14,7 @@ import copy
 
 class LatentFactorTester1(unittest.TestCase):
     def setUp(self):
-        self.parameters = copy.deepcopy(default_params);
+        self.parameters = copy.deepcopy(rep_default_params);
         self.parameters["h"]             = 2;
         self.parameters["nx"]            = 2;
         self.parameters["ny"]            = 2;
@@ -34,7 +34,7 @@ class LatentFactorTester1(unittest.TestCase):
 
 class LatentFactorTester(unittest.TestCase):
     def setUp(self):
-        self.parameters = copy.deepcopy(default_params);
+        self.parameters = copy.deepcopy(rep_default_params);
         self.parameters["h"]             = 2;
         self.parameters["nx"]            = 2;
         self.parameters["ny"]            = 2;
@@ -79,7 +79,7 @@ class LatentFactorTester(unittest.TestCase):
     
 
     def test_dimension(self):
-        parameters = copy.deepcopy(default_params);
+        parameters = copy.deepcopy(rep_default_params);
         parameters["nx"] = 100;
         parameters["ny"]   = 100;
         model = Model(parameters);
