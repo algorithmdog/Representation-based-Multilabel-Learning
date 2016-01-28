@@ -1,7 +1,17 @@
 ======================
-rustle1314/latent_factor_for_multi_label
+rustle1314/Representation-based-Multilabel-Learning
 ======================
-This project provides a latent factor model for multi-label classification, even the number of labels is extremely large. 
+This project provides representation-based learning methods for multi-label classification, even the number of labels is extremely large, include:
+
+* Web Scale Annotation by Image Embedding (WSABIE)
+
+  Weston, Jason, Samy Bengio, and Nicolas Usunier. "Wsabie: Scaling up to large vocabulary image annotation." IJCAI. Vol. 11. 2011.
+
+* Low rank Empirical risk minimization for Multi-Label Learning (LEML)
+ 
+  Yu, Hsiang-Fu, et al. "Large-scale multi-label learning with missing labels." arXiv preprint arXiv:1307.5101 (2013).
+
+
 
 Data Format
 ------------
@@ -22,33 +32,25 @@ Train, Predict and Eval
 -----------------------
 1.1 Train
 
-You can use train.py to train a model for a multi-label classification with many labels problem
+You can use train_wsabie.py and train_leml.py to train a model for a multi-label classification with many labels problem. Usage: 
 
-Usage: python train.py [options] train_file model_file
+  Usage: python train_wsabie.py(or train_leml.py) [options] train_file model_file
 
-Options::
-
-- l2_lambda: the l2 regularization coefficient (default 0.001)
-- struct: the architecture of instance represnation learner: [num_node_layer1,num_node_layer2,...] (default [])
-- batch: batch, the number of instances in a batch (default 100)
-- niter: num of iter, the number of iterations (default 20)
-- num_factor: the number of inner factors (default 50)
-- sample_ratio: the ratio of sampling (default 5)
-
-For example, "python train.py -l2_lambda 0.1 train.txt model" will train a model with regularization coefficient 0.1. The training set file is ./train.txt and the trained model will be saved in ./model.
+If you don't know how to set up the options, you just need "python train_wsabie.py" and the program will give detailed information.
 
 
 1.2 Predict
 
 You can use predict.py to make predictions with a trained model.
 
-Usage: python predict.py test_file result_file model_file
+  Usage: python predict.py test_file result_file model_file
 
 1.3 Eval
 
 You can use eval.py to evaluate the predictions
 
-Usage: python eval.py result_file true_file
+  Usage: python eval.py result_file true_file
+
 
 Requirements
 ---------------
