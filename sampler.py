@@ -26,8 +26,8 @@ class Sampler:
 
 class FullSampler(Sampler):
     def sample(self, y):
-        return sp.csr_matrix(np.ones(y.shape))
-     
+        return None
+ 
 
 class InstanceSampler(Sampler):
     def __init__(self, parameters):

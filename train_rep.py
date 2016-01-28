@@ -27,6 +27,7 @@ def printUsages():
     print "  -ha hidden_activation: set the hidden activation(default 0)"
     print "       0 -- tanh"
     print "       1 -- linear"
+    print "       2 -- relu"
     print "  -oa output_activation: set the output activation(default 0)"
     print "       0 -- sgmoid"
     print "       1 -- linear"
