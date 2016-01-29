@@ -119,7 +119,7 @@ wsabie_default_params["op"]         = op.gradient
 wsabie_default_params["m"]          = m.internal_memory
 wsabie_default_params["r"]          = 0.1
 
-wsabie_default_params["ha"]         = act.linear
+wsabie_default_params["ha"]         = act.tanh
 wsabie_default_params["oa"]         = act.linear
 wsabie_default_params["l"]          = lo.weighted_approximate_rank_pairwise
 wsabie_default_params["op"]         = op.gradient
