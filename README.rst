@@ -11,7 +11,8 @@ This project provides representation-based learning methods for multi-label clas
  
   Yu, Hsiang-Fu, et al. "Large-scale multi-label learning with missing labels." arXiv preprint arXiv:1307.5101 (2013).
 
-
+* Representation-based Multi-label Learning with Sampling (RMLS)
+  Li et al. "Towards Label Imbalance in Multi-label Classification with Many Labels"
 
 Data Format
 ------------
