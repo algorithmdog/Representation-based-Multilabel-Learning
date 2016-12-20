@@ -13,7 +13,7 @@ This project provides representation-based learning methods for multi-label clas
 
 * Representation-based Multi-label Learning with Sampling (RMLS)
 
-  Li et al. "Towards Label Imbalance in Multi-label Classification with Many Labels"
+  Li et al. "Towards Label Imbalance in Multi-label Classification with Many Labels" arXiv preprint arXiv:1604.01304 (2016).
 
 Data Format
 ------------
