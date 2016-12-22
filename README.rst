@@ -1,5 +1,5 @@
 ======================
-rustle1314/Representation-based-Multilabel-Learning
+Representation-based-Multilabel-Learning
 ======================
 This project provides representation-based learning methods for multi-label classification, even the number of labels is extremely large, include:
 
